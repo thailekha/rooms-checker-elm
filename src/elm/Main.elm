@@ -1,63 +1,118 @@
-module Main exposing (..)
+port module Main exposing (..)
+
 import Html exposing (..)
+import Html.Events exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing ( onClick )
-
--- component import example
-import Components.Hello exposing ( hello )
+import Components.Auth0 as Auth0
+import Components.Authentication as Authentication
 
 
--- APP
-main : Program Never Int Msg
+main : Program (Maybe Auth0.LoggedInUser) Model Msg
 main =
-  Html.beginnerProgram { model = model, view = view, update = update }
+    Html.programWithFlags
+        { init = init
+        , update = update
+        , subscriptions = subscriptions
+        , view = view
+        }
 
 
--- MODEL
-type alias Model = Int
-
-model : number
-model = 0
+type alias Model =
+    { authModel : Authentication.Model
+    }
 
 
--- UPDATE
-type Msg = NoOp | Increment
 
-update : Msg -> Model -> Model
+-- Init
+
+
+init : Maybe Auth0.LoggedInUser -> ( Model, Cmd Msg )
+init initialUser =
+    ( Model (Authentication.init auth0showLock auth0logout initialUser), Cmd.none )
+
+
+
+-- Messages
+
+
+type Msg
+    = AuthenticationMsg Authentication.Msg
+
+
+
+-- Ports
+
+
+port auth0showLock : Auth0.Options -> Cmd msg
+
+
+port auth0authResult : (Auth0.RawAuthenticationResult -> msg) -> Sub msg
+
+
+port auth0logout : () -> Cmd msg
+
+
+
+-- Update
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-  case msg of
-    NoOp -> model
-    Increment -> model + 1
+    case msg of
+        AuthenticationMsg authMsg ->
+            let
+                ( authModel, cmd ) =
+                    Authentication.update authMsg model.authModel
+            in
+                ( { model | authModel = authModel }, Cmd.map AuthenticationMsg cmd )
 
 
--- VIEW
--- Html is defined as: elem [ attribs ][ children ]
--- CSS can be applied via class names or inline style attrib
+
+-- Subscriptions
+
+
+subscriptions : a -> Sub Msg
+subscriptions model =
+    auth0authResult (Authentication.handleAuthResult >> AuthenticationMsg)
+
+
+
+-- View
+
+
 view : Model -> Html Msg
 view model =
-  div [ class "container", style [("margin-top", "30px"), ( "text-align", "center" )] ][    -- inline CSS (literal)
-    div [ class "row" ][
-      div [ class "col-xs-12" ][
-        div [ class "jumbotron" ][
-          img [ src "static/img/elm.jpg", style styles.img ] []                             -- inline CSS (via var)
-          , hello model                                                                     -- ext 'hello' component (takes 'model' as arg)
-          , p [] [ text ( "Elm Webpack Starter" ) ]
-          , button [ class "btn btn-primary btn-lg", onClick Increment ] [                  -- click handler
-            span[ class "glyphicon glyphicon-star" ][]                                      -- glyphicon
-            , span[][ text "FTW!" ]
-          ]
+    div [ class "container" ]
+        [ div [ class "jumbotron text-center" ]
+            [ div []
+                (case Authentication.tryGetUserProfile model.authModel of
+                    Nothing ->
+                        [ p [] [ text "Please log in" ] ]
+
+                    Just user ->
+                        [ p [] [ img [ src user.picture ] [] ]
+                        , p [] [ text ("Hello, " ++ user.name ++ "!") ]
+                        ]
+                )
+            , p []
+                [ button
+                    [ class "btn btn-primary"
+                    , onClick
+                        (AuthenticationMsg
+                            (if Authentication.isLoggedIn model.authModel then
+                                Authentication.LogOut
+                             else
+                                Authentication.ShowLogIn
+                            )
+                        )
+                    ]
+                    [ text
+                        (if Authentication.isLoggedIn model.authModel then
+                            "Logout"
+                         else
+                            "Login"
+                        )
+                    ]
+                ]
+            ]
         ]
-      ]
-    ]
-  ]
-
-
--- CSS STYLES
-styles : { img : List ( String, String ) }
-styles =
-  {
-    img =
-      [ ( "width", "33%" )
-      , ( "border", "4px solid #337AB7")
-      ]
-  }
