@@ -25,11 +25,13 @@ function init(pubKey) {
 
   // Show Auth0 lock subscription
   elmApp.ports.auth0showLock.subscribe(function(opts) {
+    console.warn("JS got msg from Elm");
     lock.show();
   });
 
   // Log out of Auth0 subscription
   elmApp.ports.auth0logout.subscribe(function(opts) {
+    console.warn("JS got msg from Elm");
     localStorage.removeItem('profile');
     localStorage.removeItem('token');
   });

@@ -13,7 +13,8 @@
     "prebuild": "rimraf dist",
     "build": "webpack",
     "reinstall": "npm i rimraf && rimraf node_modules && npm uninstall -g elm && npm i -g elm && npm i && elm package install",
-    "lint": "elm-format ./src --yes && ./node_modules/eslint/bin/eslint.js --fix webpack.config.js src/static/index.js"
+    "lint-js": "./node_modules/eslint/bin/eslint.js --fix webpack.config.js src/static/index.js",
+    "lint-elm": "elm-format ./src --yes"
   },
   "devDependencies": {
     "autoprefixer": "^6.7.7",

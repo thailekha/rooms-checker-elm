@@ -1,10 +1,15 @@
 port module Main exposing (..)
 
 import Html exposing (..)
-import Html.Events exposing (..)
+
+
+--import Html.Events exposing (..)
+
 import Html.Attributes exposing (..)
+import Tuple exposing (..)
 import Components.Auth0 as Auth0
-import Components.Authentication as Authentication
+import Components.Authentication as Authentication exposing (either)
+import Components.RoomsController as RoomsController
 
 
 main : Program (Maybe Auth0.LoggedInUser) Model Msg
@@ -19,6 +24,7 @@ main =
 
 type alias Model =
     { authModel : Authentication.Model
+    , roomsModel : RoomsController.Model
     }
 
 
@@ -28,7 +34,11 @@ type alias Model =
 
 init : Maybe Auth0.LoggedInUser -> ( Model, Cmd Msg )
 init initialUser =
-    ( Model (Authentication.init auth0showLock auth0logout initialUser), Cmd.none )
+    ( { authModel = Authentication.init auth0showLock auth0logout initialUser
+      , roomsModel = RoomsController.init
+      }
+    , Cmd.none
+    )
 
 
 
@@ -37,6 +47,7 @@ init initialUser =
 
 type Msg
     = AuthenticationMsg Authentication.Msg
+    | RoomsControllerMsg RoomsController.Msg -- in order to use RoomsController's view here
 
 
 
@@ -66,6 +77,14 @@ update msg model =
             in
                 ( { model | authModel = authModel }, Cmd.map AuthenticationMsg cmd )
 
+        -- ( { model | authModel = first (Authentication.update authMsg model.authModel) }, Cmd.none )
+        RoomsControllerMsg roomMsg ->
+            let
+                ( roomsModel, cmd ) =
+                    RoomsController.update roomMsg model.roomsModel
+            in
+                ( { model | roomsModel = roomsModel }, Cmd.map RoomsControllerMsg cmd )
+
 
 
 -- Subscriptions
@@ -83,36 +102,10 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
     div [ class "container" ]
-        [ div [ class "jumbotron text-center" ]
-            [ div []
-                (case Authentication.tryGetUserProfile model.authModel of
-                    Nothing ->
-                        [ p [] [ text "Please log in" ] ]
-
-                    Just user ->
-                        [ p [] [ img [ src user.picture ] [] ]
-                        , p [] [ text ("Hello, " ++ user.name ++ "!") ]
-                        ]
-                )
-            , p []
-                [ button
-                    [ class "btn btn-primary"
-                    , onClick
-                        (AuthenticationMsg
-                            (if Authentication.isLoggedIn model.authModel then
-                                Authentication.LogOut
-                             else
-                                Authentication.ShowLogIn
-                            )
-                        )
-                    ]
-                    [ text
-                        (if Authentication.isLoggedIn model.authModel then
-                            "Logout"
-                         else
-                            "Login"
-                        )
-                    ]
-                ]
+        [ (Html.map AuthenticationMsg (Authentication.view model.authModel))
+        , p []
+            [ either model.authModel
+                (Html.map RoomsControllerMsg (RoomsController.view model.roomsModel))
+                (p [] [ text "Please login to use this app" ])
             ]
         ]

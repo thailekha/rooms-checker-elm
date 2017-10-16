@@ -7,8 +7,13 @@ module Components.Authentication
         , handleAuthResult
         , tryGetUserProfile
         , isLoggedIn
+        , view
+        , either
         )
 
+import Html exposing (..)
+import Html.Events exposing (..)
+import Html.Attributes exposing (..)
 import Components.Auth0 as Auth0
 
 
@@ -63,6 +68,28 @@ update msg model =
             ( { model | state = Auth0.LoggedOut }, model.logOut () )
 
 
+view : Model -> Html Msg
+view model =
+    div []
+        [ (case tryGetUserProfile model of
+            Nothing ->
+                p [] [ text "Please log in" ]
+
+            Just user ->
+                div []
+                    [ p [] [ img [ src user.picture ] [] ]
+                    , p [] [ text ("Hello, " ++ user.name ++ "!") ]
+                    ]
+          )
+        , button
+            [ class "btn btn-primary"
+            , onClick (either model LogOut ShowLogIn)
+            ]
+            [ text (either model "Logout" "Login")
+            ]
+        ]
+
+
 handleAuthResult : Auth0.RawAuthenticationResult -> Msg
 handleAuthResult =
     Auth0.mapResult >> AuthenticationResult
@@ -86,3 +113,12 @@ isLoggedIn model =
 
         Auth0.LoggedOut ->
             False
+
+
+either : Model -> a -> a -> a
+either model x y =
+    (if isLoggedIn model then
+        x
+     else
+        y
+    )

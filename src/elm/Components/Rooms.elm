@@ -1,0 +1,46 @@
+module Components.Rooms exposing (..)
+
+import Html exposing (..)
+import Json.Decode as Decode
+import Json.Decode.Pipeline as JDecode
+
+
+type alias Room =
+    { room : String
+    , times : List String
+    }
+
+
+roomDecoder : Decode.Decoder Room
+roomDecoder =
+    JDecode.decode Room
+        |> JDecode.required "room" Decode.string
+        |> JDecode.required "times" (Decode.list Decode.string)
+
+
+type alias Model =
+    { rooms : List Room
+    }
+
+
+roomsDecoder : Decode.Decoder Model
+roomsDecoder =
+    JDecode.decode Model
+        |> JDecode.required "rooms" (Decode.list roomDecoder)
+
+
+
+-- notice: `Html msg` instead of `Html Msg` due to no type Msg is defined here
+
+
+view : Model -> Html msg
+view model =
+    div [] (List.map (\r -> viewRoom r) model.rooms)
+
+
+viewRoom : Room -> Html msg
+viewRoom room =
+    div []
+        [ label [] [ text room.room ]
+        , ul [] (List.map (\t -> li [] [ text t ]) room.times)
+        ]
