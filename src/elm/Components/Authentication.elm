@@ -6,6 +6,7 @@ module Components.Authentication
         , update
         , handleAuthResult
         , tryGetUserProfile
+        , tryGetAccessToken
         , isLoggedIn
         , view
         , either
@@ -100,6 +101,16 @@ tryGetUserProfile model =
     case model.state of
         Auth0.LoggedIn user ->
             Just user.profile
+
+        Auth0.LoggedOut ->
+            Nothing
+
+
+tryGetAccessToken : Model -> Maybe Auth0.Token
+tryGetAccessToken model =
+    case model.state of
+        Auth0.LoggedIn user ->
+            Just user.token
 
         Auth0.LoggedOut ->
             Nothing

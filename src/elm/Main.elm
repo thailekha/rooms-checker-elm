@@ -1,12 +1,8 @@
 port module Main exposing (..)
 
 import Html exposing (..)
-
-
---import Html.Events exposing (..)
-
+import Html.Events exposing (..)
 import Html.Attributes exposing (..)
-import Tuple exposing (..)
 import Components.Auth0 as Auth0
 import Components.Authentication as Authentication exposing (either)
 import Components.RoomsController as RoomsController
@@ -103,9 +99,26 @@ view : Model -> Html Msg
 view model =
     div [ class "container" ]
         [ (Html.map AuthenticationMsg (Authentication.view model.authModel))
-        , p []
-            [ either model.authModel
-                (Html.map RoomsControllerMsg (RoomsController.view model.roomsModel))
-                (p [] [ text "Please login to use this app" ])
-            ]
+        , either model.authModel
+            -- logged in (implicitly has accessToken)
+            (div [] 
+            [ liftRCView (RoomsController.view model.roomsModel)
+            , submitView model
+            ])
+            -- not logged in
+            (p [] [ text "Please login to use this app" ])
         ]
+
+
+liftRCView : Html RoomsController.Msg -> Html Msg
+liftRCView roomsControllerHtml =
+    Html.map RoomsControllerMsg roomsControllerHtml
+
+
+submitView : Model -> Html Msg
+submitView model =
+    case Authentication.tryGetAccessToken model.authModel of
+        Just accessToken -> 
+            (liftRCView (button [ onClick (RoomsController.Submit accessToken) ] [ text "Find" ]))
+        Nothing ->
+            p [] [ text "Acess Token unavailable or expired" ]  

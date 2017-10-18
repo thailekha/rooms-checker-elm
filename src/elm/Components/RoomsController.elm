@@ -47,7 +47,7 @@ type Msg
     = SelectWeekday String
     | SelectStartTime String
     | SelectEndTime String
-    | Submit
+    | Submit String
     | OnResponse (WebData Rooms.Model)
 
 
@@ -63,8 +63,8 @@ update msg model =
         SelectEndTime e ->
             ( { model | endTime = e }, Cmd.none )
 
-        Submit ->
-            ( { model | result = RemoteData.Loading }, send model )
+        Submit accessToken ->
+            ( { model | result = RemoteData.Loading }, send model accessToken )
 
         OnResponse response ->
             ( { model | result = response }, Cmd.none )
@@ -91,8 +91,6 @@ view model =
         , label [] [ text "End time" ]
         , select [ onInput SelectEndTime ] (optionsList times)
         , br [] []
-        , button [ onClick Submit ] [ text "Find" ]
-        , br [] []
         , p [] [ maybeResult model.result ]
         ]
 
@@ -118,8 +116,23 @@ maybeResult response =
             text (toString error)
 
 
-send : Model -> Cmd Msg
-send model =
-    Http.post ("http://localhost:3000/api/freetimes") (Http.jsonBody (modelEncoder model)) Rooms.roomsDecoder
-        |> RemoteData.sendRequest
-        |> Cmd.map OnResponse
+--send : Model -> Cmd Msg
+--send model =
+--    Http.post ("http://localhost:3000/api/freetimes") (Http.jsonBody (modelEncoder model)) Rooms.roomsDecoder
+--        |> RemoteData.sendRequest
+--        |> Cmd.map OnResponse
+
+
+send : Model -> String -> Cmd Msg
+send model accessToken =
+  Http.request
+    { method = "POST"
+    , headers = [ Http.header "Authorization" ("Bearer " ++ accessToken) ]
+    , url = "http://localhost:3000/api/freetimes"
+    , body = (Http.jsonBody (modelEncoder model))
+    , expect = Http.expectJson Rooms.roomsDecoder
+    , timeout = Nothing
+    , withCredentials = False
+    }
+    |> RemoteData.sendRequest
+    |> Cmd.map OnResponse
