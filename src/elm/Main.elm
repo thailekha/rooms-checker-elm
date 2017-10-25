@@ -30,11 +30,15 @@ type alias Model =
 
 init : Maybe Auth0.LoggedInUser -> ( Model, Cmd Msg )
 init initialUser =
-    ( { authModel = Authentication.init auth0showLock auth0logout initialUser
-      , roomsModel = RoomsController.init
-      }
-    , Cmd.none
-    )
+    let
+        ( roomsModel, cmd ) =
+            RoomsController.init
+    in
+        ( { authModel = Authentication.init auth0showLock auth0logout initialUser
+          , roomsModel = roomsModel
+          }
+        , Cmd.map RoomsControllerMsg cmd
+        )
 
 
 
@@ -101,10 +105,11 @@ view model =
         [ (Html.map AuthenticationMsg (Authentication.view model.authModel))
         , either model.authModel
             -- logged in (implicitly has accessToken)
-            (div [] 
-            [ liftRCView (RoomsController.view model.roomsModel)
-            , submitView model
-            ])
+            (div []
+                [ liftRCView (RoomsController.view model.roomsModel)
+                , submitView model
+                ]
+            )
             -- not logged in
             (p [] [ text "Please login to use this app" ])
         ]
@@ -118,7 +123,8 @@ liftRCView roomsControllerHtml =
 submitView : Model -> Html Msg
 submitView model =
     case Authentication.tryGetAccessToken model.authModel of
-        Just accessToken -> 
+        Just accessToken ->
             (liftRCView (button [ onClick (RoomsController.Submit accessToken) ] [ text "Find" ]))
+
         Nothing ->
-            p [] [ text "Acess Token unavailable or expired" ]  
+            p [] [ text "Acess Token unavailable or expired" ]

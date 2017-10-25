@@ -14,6 +14,7 @@ import Html.Attributes exposing (..)
 import Http
 import RemoteData exposing (WebData)
 import Components.Rooms as Rooms
+import Json.Decode as Decode
 import Json.Encode as Encode
 
 
@@ -21,6 +22,8 @@ type alias Model =
     { weekday : String
     , startTime : String
     , endTime : String
+    , selectedRooms : List String
+    , rooms : WebData (List String)
     , result : WebData Rooms.Model
     }
 
@@ -31,23 +34,30 @@ modelEncoder model =
         [ ( "weekday", Encode.string model.weekday )
         , ( "startTime", Encode.string model.startTime )
         , ( "endTime", Encode.string model.endTime )
+        , ( "rooms", Encode.list (List.map (\i -> Encode.string i) model.selectedRooms) )
         ]
 
 
-init : Model
+init : ( Model, Cmd Msg )
 init =
-    { weekday = "monday"
-    , startTime = "9:15"
-    , endTime = "9:15"
-    , result = RemoteData.NotAsked
-    }
+    ( { weekday = "monday"
+      , startTime = "9:15"
+      , endTime = "9:15"
+      , selectedRooms = []
+      , rooms = RemoteData.NotAsked
+      , result = RemoteData.NotAsked
+      }
+    , reqAllRooms
+    )
 
 
 type Msg
     = SelectWeekday String
     | SelectStartTime String
     | SelectEndTime String
+    | SelectRoom String
     | Submit String
+    | OnAllRoomsResponse (WebData (List String))
     | OnResponse (WebData Rooms.Model)
 
 
@@ -63,8 +73,14 @@ update msg model =
         SelectEndTime e ->
             ( { model | endTime = e }, Cmd.none )
 
+        SelectRoom r ->
+            ( { model | selectedRooms = (::) r model.selectedRooms }, Cmd.none )
+
         Submit accessToken ->
             ( { model | result = RemoteData.Loading }, send model accessToken )
+
+        OnAllRoomsResponse rooms ->
+            ( { model | rooms = rooms }, Cmd.none )
 
         OnResponse response ->
             ( { model | result = response }, Cmd.none )
@@ -91,6 +107,8 @@ view model =
         , label [] [ text "End time" ]
         , select [ onInput SelectEndTime ] (optionsList times)
         , br [] []
+        , maybeAllRooms model.rooms
+        , br [] []
         , p [] [ maybeResult model.result ]
         ]
 
@@ -98,6 +116,36 @@ view model =
 optionsList : List String -> List (Html msg)
 optionsList items =
     List.map (\i -> option [ value i ] [ text i ]) items
+
+
+checkboxesList : List String -> Html Msg
+checkboxesList items =
+    ul [] (List.map (\i -> li [] [ checkbox i ]) items)
+
+
+checkbox : String -> Html Msg
+checkbox name =
+    label
+        []
+        [ input [ type_ "checkbox", onClick (SelectRoom name) ] []
+        , text name
+        ]
+
+
+maybeAllRooms : WebData (List String) -> Html Msg
+maybeAllRooms rooms =
+    case rooms of
+        RemoteData.NotAsked ->
+            text "Get rooms first ..."
+
+        RemoteData.Loading ->
+            text "Loading..."
+
+        RemoteData.Success rooms ->
+            checkboxesList rooms
+
+        RemoteData.Failure error ->
+            text (toString error)
 
 
 maybeResult : WebData Rooms.Model -> Html msg
@@ -116,6 +164,7 @@ maybeResult response =
             text (toString error)
 
 
+
 --send : Model -> Cmd Msg
 --send model =
 --    Http.post ("http://localhost:3000/api/freetimes") (Http.jsonBody (modelEncoder model)) Rooms.roomsDecoder
@@ -123,16 +172,30 @@ maybeResult response =
 --        |> Cmd.map OnResponse
 
 
+allRoomsDecoder : Decode.Decoder (List String)
+allRoomsDecoder =
+    Decode.field "rooms" <|
+        Decode.list <|
+            Decode.string
+
+
+reqAllRooms : Cmd Msg
+reqAllRooms =
+    Http.get ("http://localhost:3000/api/public/rooms") allRoomsDecoder
+        |> RemoteData.sendRequest
+        |> Cmd.map OnAllRoomsResponse
+
+
 send : Model -> String -> Cmd Msg
 send model accessToken =
-  Http.request
-    { method = "POST"
-    , headers = [ Http.header "Authorization" ("Bearer " ++ accessToken) ]
-    , url = "http://localhost:3000/api/freetimes"
-    , body = (Http.jsonBody (modelEncoder model))
-    , expect = Http.expectJson Rooms.roomsDecoder
-    , timeout = Nothing
-    , withCredentials = False
-    }
-    |> RemoteData.sendRequest
-    |> Cmd.map OnResponse
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" ("Bearer " ++ accessToken) ]
+        , url = "http://localhost:3000/api/private/freetimes"
+        , body = (Http.jsonBody (modelEncoder model))
+        , expect = Http.expectJson Rooms.roomsDecoder
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> RemoteData.sendRequest
+        |> Cmd.map OnResponse
