@@ -124,7 +124,7 @@ submitView : Model -> Html Msg
 submitView model =
     case Authentication.tryGetAccessToken model.authModel of
         Just accessToken ->
-            (liftRCView (button [ onClick (RoomsController.Submit accessToken) ] [ text "Find" ]))
+            (liftRCView (button [ onClick (RoomsController.Submit accessToken) ] [ text "Submit" ]))
 
         Nothing ->
             p [] [ text "Acess Token unavailable or expired" ]

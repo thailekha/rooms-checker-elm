@@ -22,7 +22,6 @@ type alias Model =
     { weekday : String
     , startTime : String
     , endTime : String
-    , selectedRooms : List String
     , rooms : WebData (List String)
     , result : WebData Rooms.Model
     }
@@ -34,7 +33,11 @@ modelEncoder model =
         [ ( "weekday", Encode.string model.weekday )
         , ( "startTime", Encode.string model.startTime )
         , ( "endTime", Encode.string model.endTime )
-        , ( "rooms", Encode.list (List.map (\i -> Encode.string i) model.selectedRooms) )
+        , ( "rooms"
+          , tryGetAllRooms model.rooms
+                |> List.map (\i -> Encode.string i)
+                |> Encode.list
+          )
         ]
 
 
@@ -43,7 +46,6 @@ init =
     ( { weekday = "monday"
       , startTime = "9:15"
       , endTime = "9:15"
-      , selectedRooms = []
       , rooms = RemoteData.NotAsked
       , result = RemoteData.NotAsked
       }
@@ -51,12 +53,23 @@ init =
     )
 
 
+tryGetAllRooms : WebData (List String) -> List String
+tryGetAllRooms rooms =
+    case rooms of
+        RemoteData.Success rooms ->
+            rooms
+
+        _ ->
+            []
+
+
 type Msg
     = SelectWeekday String
     | SelectStartTime String
     | SelectEndTime String
-    | SelectRoom String
     | Submit String
+    | SelectRoom String
+    | ReqAllRooms
     | OnAllRoomsResponse (WebData (List String))
     | OnResponse (WebData Rooms.Model)
 
@@ -73,11 +86,14 @@ update msg model =
         SelectEndTime e ->
             ( { model | endTime = e }, Cmd.none )
 
-        SelectRoom r ->
-            ( { model | selectedRooms = (::) r model.selectedRooms }, Cmd.none )
-
         Submit accessToken ->
             ( { model | result = RemoteData.Loading }, send model accessToken )
+
+        ReqAllRooms ->
+            ( { model | rooms = RemoteData.Loading }, reqAllRooms )
+
+        SelectRoom new ->
+            ( { model | rooms = RemoteData.map (\old -> String.split "," (Debug.log "new" new)) model.rooms }, Cmd.none )
 
         OnAllRoomsResponse rooms ->
             ( { model | rooms = rooms }, Cmd.none )
@@ -107,9 +123,11 @@ view model =
         , label [] [ text "End time" ]
         , select [ onInput SelectEndTime ] (optionsList times)
         , br [] []
-        , maybeAllRooms model.rooms
-        , br [] []
-        , p [] [ maybeResult model.result ]
+        , div [ style [ ( "width", "40%" ), ( "float", "left" ) ] ]
+            [ button [ onClick ReqAllRooms ] [ text "Refresh all rooms" ]
+            , maybeAllRooms model.rooms
+            ]
+        , div [ style [ ( "width", "40%" ), ( "float", "right" ) ] ] [ maybeResult model.result ]
         ]
 
 
@@ -118,31 +136,23 @@ optionsList items =
     List.map (\i -> option [ value i ] [ text i ]) items
 
 
-checkboxesList : List String -> Html Msg
-checkboxesList items =
-    ul [] (List.map (\i -> li [] [ checkbox i ]) items)
-
-
-checkbox : String -> Html Msg
-checkbox name =
-    label
-        []
-        [ input [ type_ "checkbox", onClick (SelectRoom name) ] []
-        , text name
-        ]
-
-
 maybeAllRooms : WebData (List String) -> Html Msg
 maybeAllRooms rooms =
     case rooms of
         RemoteData.NotAsked ->
-            text "Get rooms first ..."
+            text "Some error occurred, please reload the page ..."
 
         RemoteData.Loading ->
-            text "Loading..."
+            text "Loading rooms..."
 
         RemoteData.Success rooms ->
-            checkboxesList rooms
+            textarea 
+            [ rows 20
+            , cols 60
+            , onInput SelectRoom
+            ] 
+            [ text (String.join "," rooms) 
+            ]
 
         RemoteData.Failure error ->
             text (toString error)
