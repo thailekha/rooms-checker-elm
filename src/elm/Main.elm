@@ -34,7 +34,7 @@ init initialUser =
         ( roomsModel, cmd ) =
             RoomsController.init
     in
-        ( { authModel = Authentication.init auth0showLock auth0logout initialUser
+        ( { authModel = Authentication.init auth0showLock auth0logout auth0renewToken initialUser
           , roomsModel = roomsModel
           }
         , Cmd.map RoomsControllerMsg cmd
@@ -63,6 +63,12 @@ port auth0authResult : (Auth0.RawAuthenticationResult -> msg) -> Sub msg
 port auth0logout : () -> Cmd msg
 
 
+port auth0renewToken : () -> Cmd msg
+
+
+port auth0TokenRenewalResult : (Auth0.RawTokenRenewalResult -> msg) -> Sub msg
+
+
 
 -- Update
 
@@ -88,11 +94,15 @@ update msg model =
 
 
 -- Subscriptions
+-- lift msg from ports to Msg for Authentication module
 
 
 subscriptions : a -> Sub Msg
 subscriptions model =
-    auth0authResult (Authentication.handleAuthResult >> AuthenticationMsg)
+    Sub.batch
+        [ auth0authResult (Authentication.handleAuthResult >> AuthenticationMsg)
+        , auth0TokenRenewalResult (Authentication.handleTokenRenewalResult >> AuthenticationMsg)
+        ]
 
 
 

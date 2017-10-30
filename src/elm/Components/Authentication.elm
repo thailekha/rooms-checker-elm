@@ -5,6 +5,7 @@ module Components.Authentication
         , init
         , update
         , handleAuthResult
+        , handleTokenRenewalResult
         , tryGetUserProfile
         , tryGetAccessToken
         , isLoggedIn
@@ -23,11 +24,12 @@ type alias Model =
     , lastError : Maybe Auth0.AuthenticationError
     , showLock : Auth0.Options -> Cmd Msg
     , logOut : () -> Cmd Msg
+    , renewToken : () -> Cmd Msg
     }
 
 
-init : (Auth0.Options -> Cmd Msg) -> (() -> Cmd Msg) -> Maybe Auth0.LoggedInUser -> Model
-init showLock logOut initialData =
+init : (Auth0.Options -> Cmd Msg) -> (() -> Cmd Msg) -> (() -> Cmd Msg) -> Maybe Auth0.LoggedInUser -> Model
+init showLock logOut renewToken initialData =
     { state =
         case initialData of
             Just user ->
@@ -38,13 +40,16 @@ init showLock logOut initialData =
     , lastError = Nothing
     , showLock = showLock
     , logOut = logOut
+    , renewToken = renewToken
     }
 
 
 type Msg
     = AuthenticationResult Auth0.AuthenticationResult
+    | TokenRenewalResult Auth0.TokenRenewalResult
     | ShowLogIn
     | LogOut
+    | RenewToken
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -62,11 +67,26 @@ update msg model =
             in
                 ( { model | state = newState, lastError = error }, Cmd.none )
 
+        TokenRenewalResult result ->
+            let
+                ( newState, error ) =
+                    case result of
+                        Ok token ->
+                            ( Auth0.updateToken token model.state, Nothing )
+
+                        Err err ->
+                            ( model.state, Just err )
+            in
+                ( { model | state = newState, lastError = error }, Cmd.none )
+
         ShowLogIn ->
             ( model, model.showLock Auth0.defaultOpts )
 
         LogOut ->
             ( { model | state = Auth0.LoggedOut }, model.logOut () )
+
+        RenewToken ->
+            ( model, model.renewToken () )
 
 
 view : Model -> Html Msg
@@ -88,12 +108,18 @@ view model =
             ]
             [ text (either model "Logout" "Login")
             ]
+        , either model (button [ onClick RenewToken ] [ text "Renew token" ]) (br [] [])
         ]
 
 
 handleAuthResult : Auth0.RawAuthenticationResult -> Msg
 handleAuthResult =
     Auth0.mapResult >> AuthenticationResult
+
+
+handleTokenRenewalResult : Auth0.RawTokenRenewalResult -> Msg
+handleTokenRenewalResult =
+    Auth0.mapTokenRenewalResult >> TokenRenewalResult
 
 
 tryGetUserProfile : Model -> Maybe Auth0.UserProfile

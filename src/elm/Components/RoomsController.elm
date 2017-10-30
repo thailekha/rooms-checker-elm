@@ -146,13 +146,13 @@ maybeAllRooms rooms =
             text "Loading rooms..."
 
         RemoteData.Success rooms ->
-            textarea 
-            [ rows 20
-            , cols 60
-            , onInput SelectRoom
-            ] 
-            [ text (String.join "," rooms) 
-            ]
+            textarea
+                [ rows 20
+                , cols 60
+                , onInput SelectRoom
+                ]
+                [ text (String.join "," rooms)
+                ]
 
         RemoteData.Failure error ->
             text (toString error)

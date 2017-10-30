@@ -4,12 +4,16 @@ module Components.Auth0
         , AuthenticationError
         , AuthenticationResult
         , RawAuthenticationResult
+        , TokenRenewalResult
+        , RawTokenRenewalResult
         , Options
         , defaultOpts
         , LoggedInUser
         , UserProfile
         , Token
         , mapResult
+        , mapTokenRenewalResult
+        , updateToken
         )
 
 
@@ -50,9 +54,19 @@ type alias AuthenticationResult =
     Result AuthenticationError LoggedInUser
 
 
+type alias TokenRenewalResult =
+    Result AuthenticationError Token
+
+
 type alias RawAuthenticationResult =
     { err : Maybe AuthenticationError
     , ok : Maybe LoggedInUser
+    }
+
+
+type alias RawTokenRenewalResult =
+    { err : Maybe AuthenticationError
+    , ok : Maybe Token
     }
 
 
@@ -69,6 +83,29 @@ mapResult result =
             Ok user
 
 
+mapTokenRenewalResult : RawTokenRenewalResult -> TokenRenewalResult
+mapTokenRenewalResult result =
+    case ( result.err, result.ok ) of
+        ( Just msg, _ ) ->
+            Err msg
+
+        ( Nothing, Nothing ) ->
+            Err { name = Nothing, code = Nothing, statusCode = Nothing, description = "No information was received from the authentication provider" }
+
+        ( Nothing, Just token ) ->
+            Ok token
+
+
 defaultOpts : Options
 defaultOpts =
     {}
+
+
+updateToken : Token -> AuthenticationState -> AuthenticationState
+updateToken token state =
+    case state of
+        LoggedIn loggedInUser ->
+            LoggedIn { loggedInUser | token = token }
+
+        _ ->
+            state
