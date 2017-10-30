@@ -20,6 +20,7 @@ module Components.Auth0
 type alias LoggedInUser =
     { profile : UserProfile
     , token : Token
+    , expiresAt : String
     }
 
 
@@ -42,6 +43,12 @@ type alias Token =
     String
 
 
+type alias RenewedToken =
+    { token : String
+    , expiresAt : String
+    }
+
+
 type alias AuthenticationError =
     { name : Maybe String
     , code : Maybe String
@@ -55,7 +62,7 @@ type alias AuthenticationResult =
 
 
 type alias TokenRenewalResult =
-    Result AuthenticationError Token
+    Result AuthenticationError RenewedToken
 
 
 type alias RawAuthenticationResult =
@@ -66,7 +73,7 @@ type alias RawAuthenticationResult =
 
 type alias RawTokenRenewalResult =
     { err : Maybe AuthenticationError
-    , ok : Maybe Token
+    , ok : Maybe RenewedToken
     }
 
 
@@ -92,20 +99,24 @@ mapTokenRenewalResult result =
         ( Nothing, Nothing ) ->
             Err { name = Nothing, code = Nothing, statusCode = Nothing, description = "No information was received from the authentication provider" }
 
-        ( Nothing, Just token ) ->
-            Ok token
+        ( Nothing, Just renewedToken ) ->
+            Ok renewedToken
+
+
+updateToken : RenewedToken -> AuthenticationState -> AuthenticationState
+updateToken renewedToken state =
+    case state of
+        LoggedIn loggedInUser ->
+            LoggedIn
+                { loggedInUser
+                    | token = renewedToken.token
+                    , expiresAt = renewedToken.expiresAt
+                }
+
+        _ ->
+            state
 
 
 defaultOpts : Options
 defaultOpts =
     {}
-
-
-updateToken : Token -> AuthenticationState -> AuthenticationState
-updateToken token state =
-    case state of
-        LoggedIn loggedInUser ->
-            LoggedIn { loggedInUser | token = token }
-
-        _ ->
-            state

@@ -3,12 +3,52 @@ const $ = require( '../../node_modules/jquery/dist/jquery.js' );           // <-
 // inject bundled Elm app into div#main
 const Elm = require( '../elm/Main' );
 
+function logLocalStorage() {
+  console.warn(localStorage);
+}
+
+function setLocalStorage(profile, idToken, accessToken, expiresAt) {
+  localStorage.setItem('profile', JSON.stringify(profile));
+  localStorage.setItem('id_token', idToken);
+  localStorage.setItem('access_token', accessToken);
+  localStorage.setItem('expires_at', expiresAt);
+}
+
+function resetLocalStorage() {
+  localStorage.removeItem('profile');
+  localStorage.removeItem('id_token');
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('expires_at');
+}
+
+function proceessTokenExpiry(expiresIn) {
+  return new Date(expiresIn * 1000 + Date.now()).toISOString();
+}
+
 function getStoredAuthData() {
+  logLocalStorage();
   var storedProfile = localStorage.getItem('profile');
   var storedIDToken = localStorage.getItem('id_token');
   var storedAccessToken = localStorage.getItem('access_token');
-  return storedProfile && storedIDToken && storedAccessToken ? { profile: JSON.parse(storedProfile), token: storedAccessToken } : null;
-  return storedProfile && storedIDToken ? { profile: JSON.parse(storedProfile), token: storedAccessToken } : null;
+  var expiresAt = localStorage.getItem('expires_at');
+  console.warn(expiresAt);
+
+  // return new Date().getTime() < expiresAt
+  //   && storedProfile 
+  //   && storedIDToken
+  //   && storedAccessToken
+  //   ? { profile: JSON.parse(storedProfile), token: storedAccessToken } : null;
+
+  // need to demonstrate token renewal
+  return expiresAt
+    && storedProfile 
+    && storedIDToken
+    && storedAccessToken
+    ? ({
+        profile: JSON.parse(storedProfile),
+        token: storedAccessToken,
+        expiresAt: expiresAt + ""
+      }) : null;
 }
 
 function initAuth() {
@@ -36,8 +76,7 @@ function renewToken(elmApp, webAuth) {
       handleTokenRenewalResult(elmApp, result);
       console.warn('Successfully renewed auth!');
     }
-  }
-  );
+  });
 }
 
 function parseAuthentication(elmApp, auth) {
@@ -48,15 +87,14 @@ function parseAuthentication(elmApp, auth) {
       handleAuthResult(elmApp, authResult);
     } else if (err) {
       console.log(err);
-      alert(
-        `Error: ${err.error}. Check the console for further details.`
-      );
+      alert(`Error: ${err.error}. Check the console for further details.`);
     }
   });
 }
 
 function handleAuthResult(elmApp, authResult) {
   console.warn(authResult);
+
   var result = { err: null, ok: null };
   var idToken = authResult.idToken;
   var accessToken = authResult.accessToken;
@@ -65,13 +103,17 @@ function handleAuthResult(elmApp, authResult) {
   if (KJUR.jws.JWS.verifyJWT(idToken, pubKey,{alg: ["RS256"]})) {
     var profile = authResult.idTokenPayload;
 
+    var expiresAt = proceessTokenExpiry(authResult.expiresIn);
+
     //verify using idtoken but give elm access token
-    result.ok = { profile: profile, token: accessToken };
+    result.ok = { 
+      profile: profile, 
+      token: accessToken,
+      expiresAt: expiresAt 
+    };
 
     //store everything in local stage though
-    localStorage.setItem('profile', JSON.stringify(profile));
-    localStorage.setItem('id_token', idToken);
-    localStorage.setItem('access_token', accessToken);
+    setLocalStorage(profile, idToken, accessToken, expiresAt);
   } else {
     //For Elm, refactor this !
     result.err = {
@@ -87,12 +129,21 @@ function handleAuthResult(elmApp, authResult) {
 }
 
 function handleTokenRenewalResult(elmApp, authResult) {
+  console.warn(authResult);
+
   var result = { err: null, ok: null };
   var accessToken = authResult.accessToken;
 
   if (accessToken) {
-    result.ok = accessToken;
+    var expiresAt = proceessTokenExpiry(authResult.expiresIn);
+
+    result.ok = {
+      token: accessToken, 
+      expiresAt: expiresAt
+    }
+
     localStorage.setItem('access_token', accessToken);
+    localStorage.setItem('expires_at', expiresAt);
   } else {
     //For Elm, refactor this !
     result.err = {
@@ -120,13 +171,12 @@ function init(pubKey) {
 
   // Log out of Auth0 subscription
   elmApp.ports.auth0logout.subscribe(function(opts) {
-    console.warn("JS got msg from Elm");
-    localStorage.removeItem('profile');
-    localStorage.removeItem('id_token');
-    localStorage.removeItem('access_token');
+    console.warn("JS got msg from Elm: logout");
+    resetLocalStorage();
   });
 
   elmApp.ports.auth0renewToken.subscribe(function(opts) {
+    console.warn("JS got msg from Elm: renew token");
     renewToken(elmApp, webAuth);
   });
 
