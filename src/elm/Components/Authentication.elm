@@ -6,7 +6,6 @@ module Components.Authentication
         , update
         , handleAuthResult
         , handleTokenRenewalResult
-        , tryGetUserProfile
         , tryGetAccessToken
         , isLoggedIn
         , view
@@ -17,6 +16,10 @@ import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import Components.Auth0 as Auth0
+import Time exposing (Time)
+import Date as Date
+import Task
+import Basics
 
 
 type alias Model =
@@ -25,6 +28,7 @@ type alias Model =
     , showLock : Auth0.Options -> Cmd Msg
     , logOut : () -> Cmd Msg
     , renewToken : () -> Cmd Msg
+    , expiresIn : String
     }
 
 
@@ -41,6 +45,7 @@ init showLock logOut renewToken initialData =
     , showLock = showLock
     , logOut = logOut
     , renewToken = renewToken
+    , expiresIn = "Already expired"
     }
 
 
@@ -50,6 +55,8 @@ type Msg
     | ShowLogIn
     | LogOut
     | RenewToken
+    | Tick Time
+    | ReportDate Date.Date
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -88,18 +95,32 @@ update msg model =
         RenewToken ->
             ( model, model.renewToken () )
 
+        Tick aSecondHasPassed ->
+            ( model, Task.perform ReportDate Date.now )
+
+        --trigger get date
+        ReportDate dateNow ->
+            (case model.state of
+                Auth0.LoggedIn user ->
+                    ( { model | expiresIn = calculateExpiresIn dateNow user.expiresAt }, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+            )
+
 
 view : Model -> Html Msg
 view model =
     div []
-        [ (case tryGetUserProfile model of
+        [ (case tryGetUser model of
             Nothing ->
                 p [] [ text "Please log in" ]
 
             Just user ->
                 div []
-                    [ p [] [ img [ src user.picture ] [] ]
-                    , p [] [ text ("Hello, " ++ user.name ++ "!") ]
+                    [ p [] [ img [ src user.profile.picture ] [] ]
+                    , p [] [ text ("Hello, " ++ user.profile.name ++ "!") ]
+                    , p [] [ text ("Token will expire in " ++ model.expiresIn ++ " milliseconds") ]
                     ]
           )
         , button
@@ -122,11 +143,11 @@ handleTokenRenewalResult =
     Auth0.mapTokenRenewalResult >> TokenRenewalResult
 
 
-tryGetUserProfile : Model -> Maybe Auth0.UserProfile
-tryGetUserProfile model =
+tryGetUser : Model -> Maybe Auth0.LoggedInUser
+tryGetUser model =
     case model.state of
         Auth0.LoggedIn user ->
-            Just user.profile
+            Just user
 
         Auth0.LoggedOut ->
             Nothing
@@ -159,3 +180,21 @@ either model x y =
      else
         y
     )
+
+
+toMillisecondsSinceEpoch : Date.Date -> Float
+toMillisecondsSinceEpoch date =
+    date
+        |> Date.toTime
+        |> Time.inMilliseconds
+
+
+calculateExpiresIn : Date.Date -> String -> String
+calculateExpiresIn dateNow tokenExpiresAt =
+    case (Date.fromString tokenExpiresAt) of
+        Ok expiresAt ->
+            ((toMillisecondsSinceEpoch expiresAt) - (toMillisecondsSinceEpoch dateNow))
+                |> Basics.toString
+
+        Err err ->
+            Debug.log "error calculateExpiresIn" ("Could not parse expiresAt: " ++ err)

@@ -6,6 +6,7 @@ import Html.Attributes exposing (..)
 import Components.Auth0 as Auth0
 import Components.Authentication as Authentication exposing (either)
 import Components.RoomsController as RoomsController
+import Time exposing (Time, second)
 
 
 main : Program (Maybe Auth0.LoggedInUser) Model Msg
@@ -102,6 +103,9 @@ subscriptions model =
     Sub.batch
         [ auth0authResult (Authentication.handleAuthResult >> AuthenticationMsg)
         , auth0TokenRenewalResult (Authentication.handleTokenRenewalResult >> AuthenticationMsg)
+        , Sub.map AuthenticationMsg (Time.every second Authentication.Tick)
+        --nested subscriptions breaks the compiler
+        --, Sub.map AuthenticationMsg Authentication.subscriptions
         ]
 
 
