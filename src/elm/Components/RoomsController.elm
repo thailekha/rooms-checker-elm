@@ -124,22 +124,59 @@ weekdays =
 
 view : Model -> Html Msg
 view model =
-    div [ class "container", style [ ( "margin-top", "30px" ), ( "text-align", "left" ) ] ]
-        [ -- inline CSS (literal)
-          label [] [ text "History" ]
-        , p [] [ maybeHistory model.history ]
-        , label [] [ text "Weekday" ]
-        , select [ onInput SelectWeekday ] (optionsList weekdays)
-        , label [] [ text "Start time" ]
-        , select [ onInput SelectStartTime ] (optionsList times)
-        , label [] [ text "End time" ]
-        , select [ onInput SelectEndTime ] (optionsList times)
-        , br [] []
-        , div [ style [ ( "width", "40%" ), ( "float", "left" ) ] ]
-            [ button [ onClick ReqAllRooms ] [ text "Refresh all rooms" ]
-            , maybeAllRooms model.rooms
+    div
+        [ class "container"
+        , style
+            [ ( "margin-top", "30px" )
+            , ( "text-align", "center" )
             ]
-        , div [ style [ ( "width", "40%" ), ( "float", "right" ) ] ] [ maybeResult model.result ]
+        ]
+        [ div
+            [ style
+                [ ( "background-color", "#70ab8f" )
+                , ( "border-style", "solid" )
+                , ( "border-color", "grey" )
+                , ( "text-align", "left" )
+                ]
+            ]
+            [ label [] [ text "History" ]
+            , p [] [ maybeHistory model.history ]
+            ]
+        , div
+            [ style
+                [ ( "background-color", "#7AAAE0" )
+                , ( "margin", "30px" )
+                ]
+            ]
+            [ label [] [ text "Weekday" ]
+            , select [ onInput SelectWeekday ] (optionsList weekdays)
+            , label [] [ text "Start time" ]
+            , select [ onInput SelectStartTime ] (optionsList times)
+            , label [] [ text "End time" ]
+            , select [ onInput SelectEndTime ] (optionsList times)
+            , br [] []
+            , div
+                [ style
+                    [ ( "background-color", "#7AAAE0" )
+                    , ( "margin", "30px" )
+                    ]
+                ]
+                [ button [ onClick ReqAllRooms ] [ text "Refresh all rooms" ]
+                , br [] []
+                , maybeAllRooms model.rooms
+                ]
+            , div
+                [ style
+                    [ ( "background-color", "#e5e5e5" )
+                    , ( "border-style", "solid" )
+                    , ( "border-color", "grey" )
+                    , ( "text-align", "left" )
+                    , ( "padding", "10px" )
+                    , ( "margin", "60px" )
+                    ]
+                ]
+                [ maybeResult model.result ]
+            ]
         ]
 
 
@@ -159,8 +196,8 @@ maybeAllRooms rooms =
 
         RemoteData.Success rooms ->
             textarea
-                [ rows 20
-                , cols 60
+                [ rows 16
+                , cols 50
                 , onInput SelectRoom
                 ]
                 [ text (String.join "," rooms)
@@ -196,12 +233,11 @@ maybeHistory response =
             text "Loading..."
 
         RemoteData.Success history ->
-            text
-                (if (String.length history) > 0 then
-                    history
-                 else
-                    "No request has been made"
-                )
+            (if (String.length history) > 0 then
+                ul [] <| List.map (\h -> li [] [ text h ]) <| String.split ";" history
+             else
+                text "No request has been made"
+            )
 
         RemoteData.Failure error ->
             text (toString error)

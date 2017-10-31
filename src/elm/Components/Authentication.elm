@@ -111,7 +111,12 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    div []
+    div
+        [ style
+            [ ( "text-align", "center" )
+            , ( "background-color", "#846084" )
+            ]
+        ]
         [ (case tryGetUser model of
             Nothing ->
                 p [] [ text "Please log in" ]

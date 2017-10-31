@@ -116,7 +116,13 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-    div [ class "container" ]
+    div
+        [ class "container"
+        , style
+            [ ( "width", "90%" )
+            , ( "background-color", "#7AAAE0" )
+            ]
+        ]
         [ (Html.map AuthenticationMsg (Authentication.view model.authModel))
         , either model.authModel
             -- logged in (implicitly has accessToken)
@@ -138,19 +144,36 @@ liftRCView roomsControllerHtml =
 
 submitView : Model -> Html Msg
 submitView model =
-    case Authentication.tryGetAccessToken model.authModel of
-        Just accessToken ->
-            (liftRCView (button [ onClick (RoomsController.Submit accessToken) ] [ text "Submit" ]))
+    div
+        [ style
+            [ ( "background-color", "#7AAAE0" )
+            , ( "text-align", "center" )
+            ]
+        ]
+        [ (case Authentication.tryGetAccessToken model.authModel of
+            Just accessToken ->
+                button
+                    [ style
+                        [ ( "font-size", "160%" ) ]
+                    , onClick (RoomsController.Submit accessToken)
+                    ]
+                    [ text "Submit" ]
+                    |> liftRCView
 
-        Nothing ->
-            p [] [ text "Acess Token unavailable or expired" ]
+            Nothing ->
+                p [] [ text "Acess Token unavailable or expired" ]
+          )
+        ]
 
 
 historyButton : Model -> Html Msg
 historyButton model =
     case Authentication.tryGetAccessToken model.authModel of
         Just accessToken ->
-            (liftRCView (button [ onClick (RoomsController.SubmitReqHistory accessToken) ] [ text "View history" ]))
+            button
+                [ onClick (RoomsController.SubmitReqHistory accessToken) ]
+                [ text "View history" ]
+                |> liftRCView
 
         Nothing ->
             p [] [ text "Acess Token unavailable or expired" ]
