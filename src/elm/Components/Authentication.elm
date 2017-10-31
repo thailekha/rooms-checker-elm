@@ -16,7 +16,7 @@ import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import Components.Auth0 as Auth0
-import Time exposing (Time)
+import Time exposing (Time, second)
 import Date as Date
 import Task
 import Basics

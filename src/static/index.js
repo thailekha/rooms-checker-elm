@@ -57,7 +57,7 @@ function initAuth() {
     clientID: 'fKww8G6jE08WDtMRg2nYRfMOCkXQqZp0',
     redirectUri: location.href,
     audience: 'http://localhost:3000', //short accesToken issue was fixed by adding audience
-    scope: 'openid profile write:freetimes', //profile is to patch the current elm model atm
+    scope: 'openid profile read:history', //profile is to patch the current elm model atm
     //https://auth0.com/docs/scopes/current
     responseType: 'token id_token' //really important, otherwise idToken key will be null
   });
@@ -66,7 +66,7 @@ function initAuth() {
 function renewToken(elmApp, webAuth) {
   //this method is not in the docs, only in the quickstart tutorial
   webAuth.renewAuth({
-    scope: 'write:freetimes',
+    scope: 'read:history',
     responseType: 'token' //override responseType, only need accessToken here
     // usePostMessage: true <-- DO NOT USE !!! this causes timeout !!!
   }, function(err, result) {

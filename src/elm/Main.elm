@@ -104,6 +104,7 @@ subscriptions model =
         [ auth0authResult (Authentication.handleAuthResult >> AuthenticationMsg)
         , auth0TokenRenewalResult (Authentication.handleTokenRenewalResult >> AuthenticationMsg)
         , Sub.map AuthenticationMsg (Time.every second Authentication.Tick)
+
         --nested subscriptions breaks the compiler
         --, Sub.map AuthenticationMsg Authentication.subscriptions
         ]
@@ -120,7 +121,8 @@ view model =
         , either model.authModel
             -- logged in (implicitly has accessToken)
             (div []
-                [ liftRCView (RoomsController.view model.roomsModel)
+                [ historyButton model
+                , liftRCView (RoomsController.view model.roomsModel)
                 , submitView model
                 ]
             )
@@ -139,6 +141,16 @@ submitView model =
     case Authentication.tryGetAccessToken model.authModel of
         Just accessToken ->
             (liftRCView (button [ onClick (RoomsController.Submit accessToken) ] [ text "Submit" ]))
+
+        Nothing ->
+            p [] [ text "Acess Token unavailable or expired" ]
+
+
+historyButton : Model -> Html Msg
+historyButton model =
+    case Authentication.tryGetAccessToken model.authModel of
+        Just accessToken ->
+            (liftRCView (button [ onClick (RoomsController.SubmitReqHistory accessToken) ] [ text "View history" ]))
 
         Nothing ->
             p [] [ text "Acess Token unavailable or expired" ]

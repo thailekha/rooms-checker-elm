@@ -24,6 +24,7 @@ type alias Model =
     , endTime : String
     , rooms : WebData (List String)
     , result : WebData Rooms.Model
+    , history : WebData String
     }
 
 
@@ -48,6 +49,7 @@ init =
       , endTime = "9:15"
       , rooms = RemoteData.NotAsked
       , result = RemoteData.NotAsked
+      , history = RemoteData.NotAsked
       }
     , reqAllRooms
     )
@@ -68,10 +70,12 @@ type Msg
     | SelectStartTime String
     | SelectEndTime String
     | Submit String
+    | SubmitReqHistory String
     | SelectRoom String
     | ReqAllRooms
     | OnAllRoomsResponse (WebData (List String))
     | OnResponse (WebData Rooms.Model)
+    | OnHistoryResponse (WebData String)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -89,6 +93,9 @@ update msg model =
         Submit accessToken ->
             ( { model | result = RemoteData.Loading }, send model accessToken )
 
+        SubmitReqHistory accessToken ->
+            ( { model | history = RemoteData.Loading }, reqHistory model accessToken )
+
         ReqAllRooms ->
             ( { model | rooms = RemoteData.Loading }, reqAllRooms )
 
@@ -100,6 +107,9 @@ update msg model =
 
         OnResponse response ->
             ( { model | result = response }, Cmd.none )
+
+        OnHistoryResponse history ->
+            ( { model | history = history }, Cmd.none )
 
 
 times : List String
@@ -116,7 +126,9 @@ view : Model -> Html Msg
 view model =
     div [ class "container", style [ ( "margin-top", "30px" ), ( "text-align", "left" ) ] ]
         [ -- inline CSS (literal)
-          label [] [ text "Weekday" ]
+          label [] [ text "History" ]
+        , p [] [ maybeHistory model.history ]
+        , label [] [ text "Weekday" ]
         , select [ onInput SelectWeekday ] (optionsList weekdays)
         , label [] [ text "Start time" ]
         , select [ onInput SelectStartTime ] (optionsList times)
@@ -174,6 +186,27 @@ maybeResult response =
             text (toString error)
 
 
+maybeHistory : WebData String -> Html msg
+maybeHistory response =
+    case response of
+        RemoteData.NotAsked ->
+            text "History is not loaded"
+
+        RemoteData.Loading ->
+            text "Loading..."
+
+        RemoteData.Success history ->
+            text
+                (if (String.length history) > 0 then
+                    history
+                 else
+                    "No request has been made"
+                )
+
+        RemoteData.Failure error ->
+            text (toString error)
+
+
 
 --send : Model -> Cmd Msg
 --send model =
@@ -194,6 +227,21 @@ reqAllRooms =
     Http.get ("http://localhost:3000/api/public/rooms") allRoomsDecoder
         |> RemoteData.sendRequest
         |> Cmd.map OnAllRoomsResponse
+
+
+reqHistory : Model -> String -> Cmd Msg
+reqHistory model accessToken =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" ("Bearer " ++ accessToken) ]
+        , url = "http://localhost:3000/api/limitedprivate/history"
+        , body = Http.emptyBody
+        , expect = Http.expectJson (Decode.field "history" <| Decode.string)
+        , timeout = Nothing
+        , withCredentials = False
+        }
+        |> RemoteData.sendRequest
+        |> Cmd.map OnHistoryResponse
 
 
 send : Model -> String -> Cmd Msg

@@ -35,7 +35,12 @@ roomsDecoder =
 
 view : Model -> Html msg
 view model =
-    div [] (List.map (\r -> viewRoom r) model.rooms)
+    div []
+        (if (List.length model.rooms) > 0 then
+            (List.map (\r -> viewRoom r) model.rooms)
+         else
+            [ text "No free room found!" ]
+        )
 
 
 viewRoom : Room -> Html msg
