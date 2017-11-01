@@ -18,11 +18,17 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 
 
+type alias RoomForSelect =
+    { name : String
+    , selected : Bool
+    }
+
+
 type alias Model =
     { weekday : String
     , startTime : String
     , endTime : String
-    , rooms : WebData (List String)
+    , rooms : WebData (List RoomForSelect)
     , result : WebData Rooms.Model
     , history : WebData String
     }
@@ -36,7 +42,13 @@ modelEncoder model =
         , ( "endTime", Encode.string model.endTime )
         , ( "rooms"
           , tryGetAllRooms model.rooms
-                |> List.map (\i -> Encode.string i)
+                |> List.filterMap
+                    (\i ->
+                        if i.selected then
+                            Just (Encode.string i.name)
+                        else
+                            Nothing
+                    )
                 |> Encode.list
           )
         ]
@@ -55,7 +67,7 @@ init =
     )
 
 
-tryGetAllRooms : WebData (List String) -> List String
+tryGetAllRooms : WebData (List RoomForSelect) -> List RoomForSelect
 tryGetAllRooms rooms =
     case rooms of
         RemoteData.Success rooms ->
@@ -71,7 +83,7 @@ type Msg
     | SelectEndTime String
     | Submit String
     | SubmitReqHistory String
-    | SelectRoom String
+    | UnselectRoom String
     | ReqAllRooms
     | OnAllRoomsResponse (WebData (List String))
     | OnResponse (WebData Rooms.Model)
@@ -99,17 +111,30 @@ update msg model =
         ReqAllRooms ->
             ( { model | rooms = RemoteData.Loading }, reqAllRooms )
 
-        SelectRoom new ->
-            ( { model | rooms = RemoteData.map (\old -> String.split "," (Debug.log "new" new)) model.rooms }, Cmd.none )
+        UnselectRoom roomName ->
+            ( { model | rooms = unselect roomName model.rooms }, Cmd.none )
 
-        OnAllRoomsResponse rooms ->
-            ( { model | rooms = rooms }, Cmd.none )
+        OnAllRoomsResponse response ->
+            ( { model | rooms = RemoteData.map allRoomsToRoomsForSelect response }, Cmd.none )
 
         OnResponse response ->
             ( { model | result = response }, Cmd.none )
 
         OnHistoryResponse history ->
             ( { model | history = history }, Cmd.none )
+
+
+unselectARoom : String -> RoomForSelect -> RoomForSelect
+unselectARoom roomName r =
+    if r.name == roomName then
+        { name = roomName, selected = False }
+    else
+        r
+
+
+unselect : String -> WebData (List RoomForSelect) -> WebData (List RoomForSelect)
+unselect roomName rooms =
+    RemoteData.map (\rs -> List.map (\r -> unselectARoom roomName r) rs) rooms
 
 
 times : List String
@@ -205,7 +230,7 @@ optionsList items =
     List.map (\i -> option [ value i ] [ text i ]) items
 
 
-maybeAllRooms : WebData (List String) -> Html Msg
+maybeAllRooms : WebData (List RoomForSelect) -> Html Msg
 maybeAllRooms rooms =
     case rooms of
         RemoteData.NotAsked ->
@@ -215,13 +240,17 @@ maybeAllRooms rooms =
             text "Loading rooms..."
 
         RemoteData.Success rooms ->
-            input
-                [ rows 16
-                , cols 50
-                , onInput SelectRoom
-                ]
-                [ text (String.join "," (Debug.log "maybeAllRooms" rooms))
-                ]
+            div []
+                (rooms
+                    |> List.filterMap
+                        (\r ->
+                            (if r.selected then
+                                Just (button [ onClick (UnselectRoom r.name) ] [ text r.name ])
+                             else
+                                Nothing
+                            )
+                        )
+                )
 
         RemoteData.Failure error ->
             text (toString error)
@@ -263,12 +292,9 @@ maybeHistory response =
             text (toString error)
 
 
-
---send : Model -> Cmd Msg
---send model =
---    Http.post ("http://localhost:3000/api/freetimes") (Http.jsonBody (modelEncoder model)) Rooms.roomsDecoder
---        |> RemoteData.sendRequest
---        |> Cmd.map OnResponse
+allRoomsToRoomsForSelect : List String -> List RoomForSelect
+allRoomsToRoomsForSelect strs =
+    List.map (\str -> { name = str, selected = True }) strs
 
 
 allRoomsDecoder : Decode.Decoder (List String)

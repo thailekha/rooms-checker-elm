@@ -29,10 +29,6 @@ roomsDecoder =
         |> JDecode.required "rooms" (Decode.list roomDecoder)
 
 
-
--- notice: `Html msg` instead of `Html Msg` due to no type Msg is defined here
-
-
 view : Model -> Html msg
 view model =
     div []

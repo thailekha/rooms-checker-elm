@@ -101,8 +101,7 @@ subscriptions model =
     Sub.batch
         [ Sub.map Auth0ControllerMsg (auth0authResult Auth0Controller.handleAuth0Result)
         , Sub.map Auth0ControllerMsg (auth0TokenRenewalResult Auth0Controller.handleTokenRenewalResult)
-
-        -- , Sub.map Auth0ControllerMsg (Time.every second Auth0Controller.Tick)
+        , Sub.map Auth0ControllerMsg (Time.every second Auth0Controller.Tick)
         ]
 
 
