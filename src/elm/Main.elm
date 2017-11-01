@@ -4,7 +4,7 @@ import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import Components.Auth0 as Auth0
-import Components.Authentication as Authentication exposing (either)
+import Components.Auth0Controller as Auth0Controller exposing (either)
 import Components.RoomsController as RoomsController
 import Time exposing (Time, second)
 
@@ -20,7 +20,7 @@ main =
 
 
 type alias Model =
-    { authModel : Authentication.Model
+    { authModel : Auth0Controller.Model
     , roomsModel : RoomsController.Model
     }
 
@@ -35,7 +35,7 @@ init initialUser =
         ( roomsModel, cmd ) =
             RoomsController.init
     in
-        ( { authModel = Authentication.init auth0showLock auth0logout auth0renewToken initialUser
+        ( { authModel = Auth0Controller.init auth0showLock auth0logout auth0renewToken initialUser
           , roomsModel = roomsModel
           }
         , Cmd.map RoomsControllerMsg cmd
@@ -47,18 +47,18 @@ init initialUser =
 
 
 type Msg
-    = AuthenticationMsg Authentication.Msg
-    | RoomsControllerMsg RoomsController.Msg -- in order to use RoomsController's view here
+    = Auth0ControllerMsg Auth0Controller.Msg
+    | RoomsControllerMsg RoomsController.Msg
 
 
 
 -- Ports
 
 
-port auth0showLock : Auth0.Options -> Cmd msg
+port auth0showLock : () -> Cmd msg
 
 
-port auth0authResult : (Auth0.RawAuthenticationResult -> msg) -> Sub msg
+port auth0authResult : (Auth0.LoggedInUser -> msg) -> Sub msg
 
 
 port auth0logout : () -> Cmd msg
@@ -67,7 +67,7 @@ port auth0logout : () -> Cmd msg
 port auth0renewToken : () -> Cmd msg
 
 
-port auth0TokenRenewalResult : (Auth0.RawTokenRenewalResult -> msg) -> Sub msg
+port auth0TokenRenewalResult : (Auth0.RenewedToken -> msg) -> Sub msg
 
 
 
@@ -77,14 +77,13 @@ port auth0TokenRenewalResult : (Auth0.RawTokenRenewalResult -> msg) -> Sub msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        AuthenticationMsg authMsg ->
+        Auth0ControllerMsg authMsg ->
             let
                 ( authModel, cmd ) =
-                    Authentication.update authMsg model.authModel
+                    Auth0Controller.update authMsg model.authModel
             in
-                ( { model | authModel = authModel }, Cmd.map AuthenticationMsg cmd )
+                ( { model | authModel = authModel }, Cmd.map Auth0ControllerMsg cmd )
 
-        -- ( { model | authModel = first (Authentication.update authMsg model.authModel) }, Cmd.none )
         RoomsControllerMsg roomMsg ->
             let
                 ( roomsModel, cmd ) =
@@ -95,18 +94,15 @@ update msg model =
 
 
 -- Subscriptions
--- lift msg from ports to Msg for Authentication module
 
 
 subscriptions : a -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ auth0authResult (Authentication.handleAuthResult >> AuthenticationMsg)
-        , auth0TokenRenewalResult (Authentication.handleTokenRenewalResult >> AuthenticationMsg)
-        , Sub.map AuthenticationMsg (Time.every second Authentication.Tick)
+        [ Sub.map Auth0ControllerMsg (auth0authResult Auth0Controller.handleAuth0Result)
+        , Sub.map Auth0ControllerMsg (auth0TokenRenewalResult Auth0Controller.handleTokenRenewalResult)
 
-        --nested subscriptions breaks the compiler
-        --, Sub.map AuthenticationMsg Authentication.subscriptions
+        -- , Sub.map Auth0ControllerMsg (Time.every second Auth0Controller.Tick)
         ]
 
 
@@ -121,9 +117,10 @@ view model =
         , style
             [ ( "width", "90%" )
             , ( "background-color", "#7AAAE0" )
+            , ( "font-size", "160%" )
             ]
         ]
-        [ (Html.map AuthenticationMsg (Authentication.view model.authModel))
+        [ (Html.map Auth0ControllerMsg (Auth0Controller.view model.authModel))
         , either model.authModel
             -- logged in (implicitly has accessToken)
             (div []
@@ -150,7 +147,7 @@ submitView model =
             , ( "text-align", "center" )
             ]
         ]
-        [ (case Authentication.tryGetAccessToken model.authModel of
+        [ (case Auth0Controller.tryGetAccessToken model.authModel of
             Just accessToken ->
                 button
                     [ style
@@ -168,10 +165,13 @@ submitView model =
 
 historyButton : Model -> Html Msg
 historyButton model =
-    case Authentication.tryGetAccessToken model.authModel of
+    case Auth0Controller.tryGetAccessToken model.authModel of
         Just accessToken ->
             button
-                [ onClick (RoomsController.SubmitReqHistory accessToken) ]
+                [ style
+                    [ ( "font-size", "110%" ) ]
+                , onClick (RoomsController.SubmitReqHistory accessToken)
+                ]
                 [ text "View history" ]
                 |> liftRCView
 

@@ -7,15 +7,17 @@ function logLocalStorage() {
   console.warn(localStorage);
 }
 
-function setLocalStorage(profile, idToken, accessToken, expiresAt) {
-  localStorage.setItem('profile', JSON.stringify(profile));
+function setLocalStorage(name, picture, idToken, accessToken, expiresAt) {
+  localStorage.setItem('name', JSON.stringify(name));
+  localStorage.setItem('picture', JSON.stringify(picture));
   localStorage.setItem('id_token', idToken);
   localStorage.setItem('access_token', accessToken);
   localStorage.setItem('expires_at', expiresAt);
 }
 
 function resetLocalStorage() {
-  localStorage.removeItem('profile');
+  localStorage.removeItem('name');
+  localStorage.removeItem('picture');
   localStorage.removeItem('id_token');
   localStorage.removeItem('access_token');
   localStorage.removeItem('expires_at');
@@ -27,39 +29,33 @@ function proceessTokenExpiry(expiresIn) {
 
 function getStoredAuthData() {
   logLocalStorage();
-  var storedProfile = localStorage.getItem('profile');
+  var storedName = localStorage.getItem('name');
+  var storedPicture = localStorage.getItem('picture');
   var storedIDToken = localStorage.getItem('id_token');
   var storedAccessToken = localStorage.getItem('access_token');
-  var expiresAt = localStorage.getItem('expires_at');
-  console.warn(expiresAt);
+  var storedExpiresAt = localStorage.getItem('expires_at');
 
-  // return new Date().getTime() < expiresAt
-  //   && storedProfile 
-  //   && storedIDToken
-  //   && storedAccessToken
-  //   ? { profile: JSON.parse(storedProfile), token: storedAccessToken } : null;
-
-  // need to demonstrate token renewal
-  return expiresAt
-    && storedProfile 
+  return storedExpiresAt
+    && storedName
+    && storedPicture 
     && storedIDToken
     && storedAccessToken
     ? ({
-        profile: JSON.parse(storedProfile),
+        name: JSON.parse(storedName),
+        picture: JSON.parse(storedPicture),
         token: storedAccessToken,
-        expiresAt: expiresAt + ""
+        expiresAt: storedExpiresAt + ""
       }) : null;
 }
 
 function initAuth() {
   return new auth0.WebAuth({
     domain: 'thailekha.auth0.com',
-    clientID: 'fKww8G6jE08WDtMRg2nYRfMOCkXQqZp0',
+    clientID: '9891wr1mAT8JBBHk9REi4khrO24Dpow9',
     redirectUri: location.href,
-    audience: 'http://localhost:3000', //short accesToken issue was fixed by adding audience
-    scope: 'openid profile read:history', //profile is to patch the current elm model atm
-    //https://auth0.com/docs/scopes/current
-    responseType: 'token id_token' //really important, otherwise idToken key will be null
+    audience: 'http://localhost:3000',
+    scope: 'openid profile read:history',
+    responseType: 'token id_token'
   });
 }
 
@@ -79,12 +75,15 @@ function renewToken(elmApp, webAuth) {
   });
 }
 
-function parseAuthentication(elmApp, auth) {
-  // auth.parseHash({nonce: '1234'}, function(err, authResult) {
-  auth.parseHash(function(err, authResult) {
-    if (authResult && authResult.idToken) {
+function parseAuthentication(elmApp, webAuth, pubKey) {
+  webAuth.parseHash(function(err, authResult) {
+    if (authResult 
+      && authResult.idToken 
+      && authResult.accessToken 
+      && authResult.idTokenPayload 
+      && authResult.expiresIn) {
       window.location.hash = '';
-      handleAuthResult(elmApp, authResult);
+      handleAuthResult(elmApp, authResult, pubKey);
     } else if (err) {
       console.log(err);
       alert(`Error: ${err.error}. Check the console for further details.`);
@@ -92,99 +91,70 @@ function parseAuthentication(elmApp, auth) {
   });
 }
 
-function handleAuthResult(elmApp, authResult) {
+function handleAuthResult(elmApp, authResult, pubKey) {
   console.warn(authResult);
-
-  var result = { err: null, ok: null };
   var idToken = authResult.idToken;
-  var accessToken = authResult.accessToken;
 
-  //OpenID - use id token to verify user
-  if (KJUR.jws.JWS.verifyJWT(idToken, pubKey,{alg: ["RS256"]})) {
-    var profile = authResult.idTokenPayload;
-
+  if (KJUR.jws.JWS.verifyJWT(idToken, pubKey, {alg: ["RS256"]})) {
+    var name = authResult.idTokenPayload.name;
+    var picture = authResult.idTokenPayload.picture;
+    var accessToken = authResult.accessToken;
     var expiresAt = proceessTokenExpiry(authResult.expiresIn);
 
-    //verify using idtoken but give elm access token
-    result.ok = { 
-      profile: profile, 
+    elmApp.ports.auth0authResult.send({ 
+      name: name,
+      picture: picture,
       token: accessToken,
-      expiresAt: expiresAt 
-    };
-
-    //store everything in local stage though
-    setLocalStorage(profile, idToken, accessToken, expiresAt);
-  } else {
-    //For Elm, refactor this !
-    result.err = {
-      name : "Error user authentation",
-      code : "",
-      description : "Invalid JWT signature",
-      statusCode : -1
-    };
-
-    alert(result.err.description);
+      expiresAt: expiresAt
+    });
+    setLocalStorage(name, picture, idToken, accessToken, expiresAt);
   }
-  elmApp.ports.auth0authResult.send(result);
 }
 
 function handleTokenRenewalResult(elmApp, authResult) {
   console.warn(authResult);
-
-  var result = { err: null, ok: null };
   var accessToken = authResult.accessToken;
 
   if (accessToken) {
     var expiresAt = proceessTokenExpiry(authResult.expiresIn);
 
-    result.ok = {
+    elmApp.ports.auth0TokenRenewalResult.send({
       token: accessToken, 
       expiresAt: expiresAt
-    }
-
+    });
     localStorage.setItem('access_token', accessToken);
     localStorage.setItem('expires_at', expiresAt);
-  } else {
-    //For Elm, refactor this !
-    result.err = {
-      name : "Error token renewal",
-      code : "",
-      description : "acessToken null",
-      statusCode : -1
-    };
-
-    alert(result.err.description);
   }
-  elmApp.ports.auth0TokenRenewalResult.send(result);
 }
 
-function init(pubKey) {
-  var elmApp = Elm.Main.fullscreen(getStoredAuthData());
-
-  var webAuth = initAuth();
-
-  elmApp.ports.auth0showLock.subscribe(function(opts) {
+function setupElmPorts(elmApp, webAuth) {
+  elmApp.ports.auth0showLock.subscribe(function() {
     console.warn("JS got msg from Elm: show lock");
-    //webAuth.authorize({nonce: '1234'});
     webAuth.authorize();
   });
 
-  // Log out of Auth0 subscription
-  elmApp.ports.auth0logout.subscribe(function(opts) {
-    console.warn("JS got msg from Elm: logout");
-    resetLocalStorage();
-  });
-
-  elmApp.ports.auth0renewToken.subscribe(function(opts) {
+  elmApp.ports.auth0renewToken.subscribe(function() {
     console.warn("JS got msg from Elm: renew token");
     renewToken(elmApp, webAuth);
   });
 
-  //auth0 will cause page reloading when auth result comes back
-  parseAuthentication(elmApp, webAuth);
+  elmApp.ports.auth0logout.subscribe(function() {
+    console.warn("JS got msg from Elm: logout");
+    resetLocalStorage();
+  });  
+}
+
+//webAuth.authorize({nonce: '1234'});
+//auth0 will cause page reloading when auth result comes back
+
+function init(pubKey) {
+  var elmApp = Elm.Main.fullscreen(getStoredAuthData());
+  var webAuth = initAuth();
+  setupElmPorts(elmApp, webAuth);
+  parseAuthentication(elmApp, webAuth, pubKey);
 }
 
 $.getJSON('https://thailekha.auth0.com/.well-known/jwks.json', function(jwks) {
-  pubKey = KEYUTIL.getKey(jwks.keys[0]);
+  var pubKey = KEYUTIL.getKey(jwks.keys[0]);
   init(pubKey);
 });

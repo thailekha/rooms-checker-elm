@@ -149,11 +149,26 @@ view model =
                 ]
             ]
             [ label [] [ text "Weekday" ]
-            , select [ onInput SelectWeekday ] (optionsList weekdays)
+            , select
+                [ style
+                    [ ( "font-size", "105%" ) ]
+                , onInput SelectWeekday
+                ]
+                (optionsList weekdays)
             , label [] [ text "Start time" ]
-            , select [ onInput SelectStartTime ] (optionsList times)
+            , select
+                [ style
+                    [ ( "font-size", "105%" ) ]
+                , onInput SelectStartTime
+                ]
+                (optionsList times)
             , label [] [ text "End time" ]
-            , select [ onInput SelectEndTime ] (optionsList times)
+            , select
+                [ style
+                    [ ( "font-size", "105%" ) ]
+                , onInput SelectEndTime
+                ]
+                (optionsList times)
             , br [] []
             , div
                 [ style
@@ -161,7 +176,12 @@ view model =
                     , ( "margin", "30px" )
                     ]
                 ]
-                [ button [ onClick ReqAllRooms ] [ text "Refresh all rooms" ]
+                [ button
+                    [ style
+                        [ ( "font-size", "110%" ) ]
+                    , onClick ReqAllRooms
+                    ]
+                    [ text "Refresh all rooms" ]
                 , br [] []
                 , maybeAllRooms model.rooms
                 ]
@@ -195,12 +215,12 @@ maybeAllRooms rooms =
             text "Loading rooms..."
 
         RemoteData.Success rooms ->
-            textarea
+            input
                 [ rows 16
                 , cols 50
                 , onInput SelectRoom
                 ]
-                [ text (String.join "," rooms)
+                [ text (String.join "," (Debug.log "maybeAllRooms" rooms))
                 ]
 
         RemoteData.Failure error ->
