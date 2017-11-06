@@ -1,12 +1,11 @@
-port module Main exposing (..)
+module Main exposing (..)
 
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import Components.Auth0 as Auth0
-import Components.Auth0Controller as Auth0Controller exposing (either)
+import Components.Auth0Controller as Auth0Controller
 import Components.RoomsController as RoomsController
-import Time exposing (Time, second)
 
 
 main : Program (Maybe Auth0.LoggedInUser) Model Msg
@@ -35,7 +34,7 @@ init initialUser =
         ( roomsModel, cmd ) =
             RoomsController.init
     in
-        ( { authModel = Auth0Controller.init auth0showLock auth0logout auth0renewToken initialUser
+        ( { authModel = Auth0Controller.init initialUser
           , roomsModel = roomsModel
           }
         , Cmd.map RoomsControllerMsg cmd
@@ -52,22 +51,12 @@ type Msg
 
 
 
--- Ports
+-- Subscriptions
 
 
-port auth0showLock : () -> Cmd msg
-
-
-port auth0authResult : (Auth0.LoggedInUser -> msg) -> Sub msg
-
-
-port auth0logout : () -> Cmd msg
-
-
-port auth0renewToken : () -> Cmd msg
-
-
-port auth0TokenRenewalResult : (Auth0.RenewedToken -> msg) -> Sub msg
+subscriptions : a -> Sub Msg
+subscriptions a =
+    Sub.map Auth0ControllerMsg (Auth0Controller.subscriptions a)
 
 
 
@@ -77,32 +66,19 @@ port auth0TokenRenewalResult : (Auth0.RenewedToken -> msg) -> Sub msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Auth0ControllerMsg authMsg ->
+        Auth0ControllerMsg subMsg ->
             let
-                ( authModel, cmd ) =
-                    Auth0Controller.update authMsg model.authModel
+                ( subModel, subCmd ) =
+                    Auth0Controller.update subMsg model.authModel
             in
-                ( { model | authModel = authModel }, Cmd.map Auth0ControllerMsg cmd )
+                ( { model | authModel = subModel }, Cmd.map Auth0ControllerMsg subCmd )
 
-        RoomsControllerMsg roomMsg ->
+        RoomsControllerMsg subMsg ->
             let
-                ( roomsModel, cmd ) =
-                    RoomsController.update roomMsg model.roomsModel
+                ( subModel, subCmd ) =
+                    RoomsController.update subMsg model.roomsModel
             in
-                ( { model | roomsModel = roomsModel }, Cmd.map RoomsControllerMsg cmd )
-
-
-
--- Subscriptions
-
-
-subscriptions : a -> Sub Msg
-subscriptions model =
-    Sub.batch
-        [ Sub.map Auth0ControllerMsg (auth0authResult Auth0Controller.handleAuth0Result)
-        , Sub.map Auth0ControllerMsg (auth0TokenRenewalResult Auth0Controller.handleTokenRenewalResult)
-        , Sub.map Auth0ControllerMsg (Time.every second Auth0Controller.Tick)
-        ]
+                ( { model | roomsModel = subModel }, Cmd.map RoomsControllerMsg subCmd )
 
 
 
@@ -120,11 +96,11 @@ view model =
             ]
         ]
         [ (Html.map Auth0ControllerMsg (Auth0Controller.view model.authModel))
-        , either model.authModel
+        , Auth0Controller.either model.authModel
             -- logged in (implicitly has accessToken)
             (div []
                 [ historyButton model
-                , liftRCView (RoomsController.view model.roomsModel)
+                , liftRoomsControllerView (RoomsController.view model.roomsModel)
                 , submitView model
                 ]
             )
@@ -133,8 +109,8 @@ view model =
         ]
 
 
-liftRCView : Html RoomsController.Msg -> Html Msg
-liftRCView roomsControllerHtml =
+liftRoomsControllerView : Html RoomsController.Msg -> Html Msg
+liftRoomsControllerView roomsControllerHtml =
     Html.map RoomsControllerMsg roomsControllerHtml
 
 
@@ -154,7 +130,7 @@ submitView model =
                     , onClick (RoomsController.Submit accessToken)
                     ]
                     [ text "Submit" ]
-                    |> liftRCView
+                    |> liftRoomsControllerView
 
             Nothing ->
                 p [] [ text "Acess Token unavailable or expired" ]
@@ -172,7 +148,7 @@ historyButton model =
                 , onClick (RoomsController.SubmitReqHistory accessToken)
                 ]
                 [ text "View history" ]
-                |> liftRCView
+                |> liftRoomsControllerView
 
         Nothing ->
             p [] [ text "Acess Token unavailable or expired" ]

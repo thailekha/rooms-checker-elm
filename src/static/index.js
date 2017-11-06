@@ -60,11 +60,9 @@ function initAuth() {
 }
 
 function renewToken(elmApp, webAuth) {
-  //this method is not in the docs, only in the quickstart tutorial
   webAuth.renewAuth({
     scope: 'read:history',
-    responseType: 'token' //override responseType, only need accessToken here
-    // usePostMessage: true <-- DO NOT USE !!! this causes timeout !!!
+    responseType: 'token'
   }, function(err, result) {
     if (err) {
       console.warn(err);
@@ -111,12 +109,12 @@ function handleAuthResult(elmApp, authResult, pubKey) {
   }
 }
 
-function handleTokenRenewalResult(elmApp, authResult) {
-  console.warn(authResult);
-  var accessToken = authResult.accessToken;
+function handleTokenRenewalResult(elmApp, tokenRenewalResult) {
+  console.warn(tokenRenewalResult);
+  var accessToken = tokenRenewalResult.accessToken;
 
   if (accessToken) {
-    var expiresAt = proceessTokenExpiry(authResult.expiresIn);
+    var expiresAt = proceessTokenExpiry(tokenRenewalResult.expiresIn);
 
     elmApp.ports.auth0TokenRenewalResult.send({
       token: accessToken, 
