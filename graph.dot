@@ -1,0 +1,115 @@
+
+digraph G {
+  // Global settings
+  //modify nodesep and ranksep to compress or expand
+  graph[center=true, ranksep=3, splines=ortho, fontname="times-bold"]
+  edge[style=invis, arrowsize=0.6, arrowhead=vee, fontname="times-bold"]
+  node [shape="box", fontname="times-bold"]
+
+
+  // Declare nodes and areas
+  subgraph cluster_0 {
+    user
+    subgraph cluster_1 {
+      style=filled
+      color=lightgrey
+      label = "Fronend"
+      subgraph cluster_2 {
+        label = ""
+        localStorage
+        publicKey
+      }
+      subgraph cluster_3 {
+        color="lightpink"
+        label="Javascript"
+        xx[style=filled, color=black, shape=ellipse]
+        auth0js verify parseHash tokenRenewal
+      }
+      subgraph cluster_4 {
+        color="darksalmon"
+        label="Elm"
+        /*Make vertical nodes by using invisible edges*/
+        MainController Auth0Controller RoomsController
+        /*MainController->Auth0Controller
+        MainController->RoomsController*/
+      }
+    }
+    subgraph cluster_5 {
+      style=filled
+      color=darkslategray3
+      label = "Auth0"
+      auth0server jwks
+    }
+    subgraph cluster_6 {
+      style=filled
+      color=palegreen
+      label = "Backend - Go"
+      jwtValidator verifyTokenAndScope mainLogic
+    }
+  }
+
+  subgraph cluster_7 {
+    // SETUP
+    //edge[style=vis]
+    publicKey -> jwks [xlabel="(1)",dir="both",color=red,fontcolor=red,fontsize=20]
+    publicKey -> xx [xlabel="(2) init"]
+    xx -> auth0js [xlabel="(3) init"]
+    xx -> MainController [xlabel="(4) init"]
+
+    jwks -> jwtValidator [xlabel="(5)", dir="both",color=red,fontcolor=red,fontsize=20]
+    jwtValidator -> verifyTokenAndScope [xlabel="(6)"]
+  }
+
+  subgraph cluster_8 {
+    // LOGIN when detecting auth in localStorage
+    //edge[style=vis]
+    localStorage -> xx [xlabel="(1) [idToken,profile,accessToken]"]
+    xx -> Auth0Controller  [xlabel="(2) [profile,accessToken]"]
+  }
+
+  subgraph cluster_9 {
+    //edge[style=vis]
+    // LOGIN
+    user -> MainController [taillabel="(1) Click login",color=red,fontcolor=red,fontsize=20]
+    MainController -> Auth0Controller [taillabel="(2)"]
+    Auth0Controller -> auth0js [taillabel="(3)"]
+    auth0js -> auth0server [xlabel="(4) [Credentials]"]
+    auth0server -> parseHash [taillabel="(5)"]
+    parseHash -> verify [xlabel="(6) [idToken,profile,accessToken]"]
+    publicKey -> verify [taillabel="(7)"]
+    verify -> localStorage [xlabel="(8) [idToken,profile,accessToken]"]
+    verify -> Auth0Controller  [xlabel="(9) [profile,accessToken]"]
+  }
+
+  subgraph cluster_10 {
+    //edge[style=vis]
+    // Interact with backend
+    user -> MainController [xlabel="(1)", color=red,fontcolor=red,fontsize=20]
+    MainController -> Auth0Controller [xlabel="(2) [accessToken]" dir=both]
+    MainController -> RoomsController[xlabel="(3) [accessToken]"]
+    RoomsController -> verifyTokenAndScope [xlabel="(4) [accessToken]"]
+    verifyTokenAndScope -> mainLogic [xlabel="(5)"]
+    mainLogic -> RoomsController [xlabel="(6)"]
+  }
+
+  subgraph cluster_11 {
+    edge[style=vis]
+    // token renewal
+    user -> MainController [taillabel="(1) Click Renew Token", color=red,fontcolor=red,fontsize=20]
+    MainController -> Auth0Controller [xlabel="(2)"]
+    Auth0Controller -> auth0js [xlabel="(3)"]
+    auth0js -> auth0server [xlabel="(4)"]
+    auth0server -> tokenRenewal [xlabel="(5) [access token]"]
+    tokenRenewal -> Auth0Controller [xlabel="(6)"]
+    tokenRenewal -> localStorage [xlabel="(7)"]
+  }
+
+  subgraph cluster_12 {
+    //edge[style=vis]
+    // logout
+    user -> MainController [taillabel="(1) Click logout", color=red,fontcolor=red,fontsize=20]
+    MainController -> Auth0Controller [xlabel="(2)"]
+    Auth0Controller -> xx [xlabel="(3)"]
+    xx -> localStorage [xlabel="(4)"]
+  }
+}
