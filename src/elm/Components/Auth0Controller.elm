@@ -124,7 +124,7 @@ view model =
                 div []
                     [ p [] [ img [ src user.picture ] [] ]
                     , p [] [ text ("Hello, " ++ user.name ++ "!") ]
-                    , p [] [ text ("Token will expire in " ++ model.expiresIn ++ " milliseconds") ]
+                    , p [] [ text ("Token will expire in (milliseconds): " ++ model.expiresIn) ]
                     ]
           )
         , button
@@ -188,8 +188,14 @@ calculateExpiresIn : Date.Date -> String -> String
 calculateExpiresIn dateNow tokenExpiresAt =
     case (Date.fromString tokenExpiresAt) of
         Ok expiresAt ->
-            ((toMillisecondsSinceEpoch expiresAt) - (toMillisecondsSinceEpoch dateNow))
-                |> Basics.toString
+            let
+                diff =
+                    (toMillisecondsSinceEpoch expiresAt) - (toMillisecondsSinceEpoch dateNow)
+            in
+                if diff > 0 then
+                    diff |> Basics.toString
+                else
+                    "expired"
 
         Err err ->
             Debug.log "error calculateExpiresIn" ("Could not parse expiresAt: " ++ err)

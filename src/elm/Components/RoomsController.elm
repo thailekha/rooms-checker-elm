@@ -86,7 +86,7 @@ type Msg
     | UnselectRoom String
     | ReqAllRooms
     | OnAllRoomsResponse (WebData (List String))
-    | OnResponse (WebData Rooms.Model)
+    | OnCheckRoomsResponse (WebData Rooms.Model)
     | OnHistoryResponse (WebData String)
 
 
@@ -103,7 +103,7 @@ update msg model =
             ( { model | endTime = e }, Cmd.none )
 
         Submit accessToken ->
-            ( { model | result = RemoteData.Loading }, send model accessToken )
+            ( { model | result = RemoteData.Loading }, reqCheckRooms model accessToken )
 
         SubmitReqHistory accessToken ->
             ( { model | history = RemoteData.Loading }, reqHistory model accessToken )
@@ -117,7 +117,7 @@ update msg model =
         OnAllRoomsResponse response ->
             ( { model | rooms = RemoteData.map allRoomsToRoomsForSelect response }, Cmd.none )
 
-        OnResponse response ->
+        OnCheckRoomsResponse response ->
             ( { model | result = response }, Cmd.none )
 
         OnHistoryResponse history ->
@@ -208,6 +208,7 @@ view model =
                     ]
                     [ text "Refresh all rooms" ]
                 , br [] []
+                , br [] []
                 , maybeAllRooms model.rooms
                 ]
             , div
@@ -245,7 +246,7 @@ maybeAllRooms rooms =
                     |> List.filterMap
                         (\r ->
                             (if r.selected then
-                                Just (button [ onClick (UnselectRoom r.name) ] [ text r.name ])
+                                Just (button [ style [ ( "font-size", "100%" ) ], onClick (UnselectRoom r.name) ] [ text r.name ])
                              else
                                 Nothing
                             )
@@ -326,8 +327,8 @@ reqHistory model accessToken =
         |> Cmd.map OnHistoryResponse
 
 
-send : Model -> String -> Cmd Msg
-send model accessToken =
+reqCheckRooms : Model -> String -> Cmd Msg
+reqCheckRooms model accessToken =
     Http.request
         { method = "POST"
         , headers = [ Http.header "Authorization" ("Bearer " ++ accessToken) ]
@@ -338,4 +339,4 @@ send model accessToken =
         , withCredentials = False
         }
         |> RemoteData.sendRequest
-        |> Cmd.map OnResponse
+        |> Cmd.map OnCheckRoomsResponse
