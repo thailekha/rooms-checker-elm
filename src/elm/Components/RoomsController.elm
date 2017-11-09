@@ -307,7 +307,7 @@ allRoomsDecoder =
 
 reqAllRooms : Cmd Msg
 reqAllRooms =
-    Http.get ("http://localhost:3000/api/public/rooms") allRoomsDecoder
+    Http.get ("https://rooms-checker-go.herokuapp.com/api/public/rooms") allRoomsDecoder
         |> RemoteData.sendRequest
         |> Cmd.map OnAllRoomsResponse
 
@@ -317,7 +317,7 @@ reqHistory model accessToken =
     Http.request
         { method = "GET"
         , headers = [ Http.header "Authorization" ("Bearer " ++ accessToken) ]
-        , url = "http://localhost:3000/api/limitedprivate/history"
+        , url = "https://rooms-checker-go.herokuapp.com/api/limitedprivate/history"
         , body = Http.emptyBody
         , expect = Http.expectJson (Decode.field "history" <| Decode.string)
         , timeout = Nothing
@@ -332,7 +332,7 @@ reqCheckRooms model accessToken =
     Http.request
         { method = "POST"
         , headers = [ Http.header "Authorization" ("Bearer " ++ accessToken) ]
-        , url = "http://localhost:3000/api/private/freetimes"
+        , url = "https://rooms-checker-go.herokuapp.com/api/private/freetimes"
         , body = (Http.jsonBody (modelEncoder model))
         , expect = Http.expectJson Rooms.roomsDecoder
         , timeout = Nothing

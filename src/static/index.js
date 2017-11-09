@@ -51,9 +51,9 @@ function getStoredAuthData() {
 function initAuth() {
   return new auth0.WebAuth({
     domain: 'thailekha.auth0.com',
-    clientID: '9891wr1mAT8JBBHk9REi4khrO24Dpow9',
+    clientID: 'c4rC2ux3xL84U3WctW2S6IkQcYc9E45q',
     redirectUri: location.href,
-    audience: 'http://localhost:3000',
+    audience: 'https://rooms-checker-go.herokuapp.com/',
     scope: 'openid profile read:history',
     responseType: 'token id_token'
   });
