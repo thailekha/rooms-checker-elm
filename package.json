@@ -15,15 +15,15 @@
     "reinstall": "npm i rimraf && rimraf node_modules && npm uninstall -g elm && npm i -g elm && npm i && elm package install",
     "lint-js": "./node_modules/eslint/bin/eslint.js --fix webpack.config.js src/static/index.js",
     "lint-elm": "elm-format ./src --yes",
-    "heroku-prebuild": "npm i -g webpack",
-    "heroku-postbuild": "webpack --progress"
+    "heroku-postbuild": "./node_modules/webpack/bin/webpack.js --progress"
   },
   "engines": {
     "node": "6.11.2"
   },
-  "devDependencies": {
+  "dependencies": {
     "autoprefixer": "^6.7.7",
     "copy-webpack-plugin": "^4.0.1",
+    "express": "^4.16.2",
     "elm": "^0.18.0",
     "elm-webpack-loader": "^4.3.0",
     "eslint": "^4.9.0",
@@ -36,8 +36,5 @@
     "webpack": "^2.3.1",
     "webpack-dev-server": "^2.4.2",
     "webpack-merge": "^4.1.0"
-  },
-  "dependencies": {
-    "express": "^4.16.2"
   }
 }
