@@ -1,4 +1,5 @@
 # Rooms Checker
+[![Build Status](https://travis-ci.org/thailekha/rooms-checker-elm.png?branch=master)](https://travis-ci.org/thailekha/rooms-checker-elm)
 
 - App checks for free rooms in WIT
 - Backend:
