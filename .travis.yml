@@ -1,6 +1,5 @@
 language: node_js
 node_js: 6.11.2
-go: 1.9
 env:
   global:
   - secure: CAdq9mSE1UNFVXGCYW0g9AgqMbbkZUVR+RSpuLqDZQ4dBOZTLHx0JsbvFJYHmQ2478K0zVJ/ltCUuxq81LhOvln76x8i6AQxwOcrlg+P7E6SHwb5rOTy2wB3ks/+ZSWeMtTLiu05gd5H4FpwmXS1S4Qu7KiaVhZUi/sVMjP2T1DIWnD/e3Afxt8s3Z/enFo/vf3t/mtOpjbz4NP64E3Nm5XLuWGE10zp3zlKADyjpKD63Cy2u49MR428+dr7QJJ+9393h8gIp30Fz22CKjvBqlsBsR/OE6DPaaPk/WeypGSgBKPOjPXijRCL4PyyJg9o21H58oa3QtW1zMrUYOBUjLecppF4nI7Rx+eFLm7S38cSSqrVncL5d8tcvQGOAnXVylzdWf7LhnsgKd6i8lBlhXvQDSWBBgROC1s+k8T83h5UxSgf1H0yMOP2rhtWWCJZ4HOaAqzCdeDZtXPeQQZJrBL82OaFE2jDRA3egWXAOc5gaGil0x1ZBWPf3I9+EPy/tQNDLJNr2hDWPjL5WT0IeJKi/cO1jh4i+oUNI1Z4MifLhwCT6JbgIaSCf7WwsEbXfslU6C3nQH7wZcnKOfr65STVYp0r4iT08qGrnUb/9uiSHBkXvrLY5cd00IjuSD8v4uadycQAlvTuKHwB4r0s/yowTJfF9Gi8r7pHNrp0G6w=
@@ -9,11 +8,9 @@ cache:
   directories:
   - sysconfcpus
 before_install:
-- go get github.com/hashicorp/packer
-- packer -v
-- npm i -g elm
+- npm i -g elm yarn
 install:
-- npm install
+- yarn install
 - elm-package install -y
 - |
   if [ ! -d sysconfcpus/bin ];
@@ -26,14 +23,18 @@ install:
   fi
 before_script:
 - "$TRAVIS_BUILD_DIR/sysconfcpus/bin/sysconfcpus -n 2 $TRAVIS_BUILD_DIR/node_modules/webpack/bin/webpack.js --progress"
-script:
-- npm test
-- npm pack
-after_success:
-- ls -al
+- npm run test
+- tar czf dist.tgz dist # dist is in .gitignore so will be ignored by yarn pack
+- yarn pack
+- packer -v
 - "packer validate -var build_path=$TRAVIS_BUILD_DIR $TRAVIS_BUILD_DIR/scripts/aws-ebs.json"
+script:
 - chmod +x ./scripts/packer-run.sh
 - "$TRAVIS_BUILD_DIR/scripts/packer-run.sh"
+after_success:
+- ls -al
+after_failure:
+- ls -al
 # deploy:
 #   provider: script
 #   script: scripts/packer-run.sh

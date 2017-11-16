@@ -10,17 +10,17 @@
       "access_key": "{{user `aws_access_key`}}",
       "secret_key": "{{user `aws_secret_key`}}",
       "region": "us-west-2",
-      "source_ami": "ami-aa5ebdd2",
+      "source_ami": "ami-0a00ce72",
       "instance_type": "t2.micro",
-      "ssh_username": "ec2-user",
-      "ami_name": "packer-example {{timestamp}}"
+      "ssh_username": "ubuntu",
+      "ami_name": "rooms-checker-elm {{timestamp}}"
     }
   ],
   "provisioners": [
     {
       "type": "file",
-      "source": "{{user `build_path`}}/rooms-checker-elm-0.0.1.tgz",
-      "destination": "/tmp/rooms-checker-elm.tar.gz"
+      "source": "{{user `build_path`}}/rooms-checker-elm-v0.0.1.tgz",
+      "destination": "/tmp/rooms-checker-elm.tgz"
     },
     {
       "type": "shell",
