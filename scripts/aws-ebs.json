@@ -1,7 +1,8 @@
 {
   "variables": {
     "aws_access_key": "",
-    "aws_secret_key": ""
+    "aws_secret_key": "",
+    "build_path": ""
   },
   "builders": [
     {
@@ -17,8 +18,13 @@
   ],
   "provisioners": [
     {
+      "type": "file",
+      "source": "{{user `build_path`}}/rooms-checker-elm-0.0.1.tgz",
+      "destination": "/tmp/rooms-checker-elm.tar.gz"
+    },
+    {
       "type": "shell",
-      "script": "./scripts/provision.sh"
+      "script": "{{user `build_path`}}/scripts/provision.sh"
     }
   ]
 }
