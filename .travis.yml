@@ -5,10 +5,13 @@ env:
   - secure: CAdq9mSE1UNFVXGCYW0g9AgqMbbkZUVR+RSpuLqDZQ4dBOZTLHx0JsbvFJYHmQ2478K0zVJ/ltCUuxq81LhOvln76x8i6AQxwOcrlg+P7E6SHwb5rOTy2wB3ks/+ZSWeMtTLiu05gd5H4FpwmXS1S4Qu7KiaVhZUi/sVMjP2T1DIWnD/e3Afxt8s3Z/enFo/vf3t/mtOpjbz4NP64E3Nm5XLuWGE10zp3zlKADyjpKD63Cy2u49MR428+dr7QJJ+9393h8gIp30Fz22CKjvBqlsBsR/OE6DPaaPk/WeypGSgBKPOjPXijRCL4PyyJg9o21H58oa3QtW1zMrUYOBUjLecppF4nI7Rx+eFLm7S38cSSqrVncL5d8tcvQGOAnXVylzdWf7LhnsgKd6i8lBlhXvQDSWBBgROC1s+k8T83h5UxSgf1H0yMOP2rhtWWCJZ4HOaAqzCdeDZtXPeQQZJrBL82OaFE2jDRA3egWXAOc5gaGil0x1ZBWPf3I9+EPy/tQNDLJNr2hDWPjL5WT0IeJKi/cO1jh4i+oUNI1Z4MifLhwCT6JbgIaSCf7WwsEbXfslU6C3nQH7wZcnKOfr65STVYp0r4iT08qGrnUb/9uiSHBkXvrLY5cd00IjuSD8v4uadycQAlvTuKHwB4r0s/yowTJfF9Gi8r7pHNrp0G6w=
   - secure: XCkB5bTRu+8fI5ngZOmP9NJ7NFV5V6iJzVZkPe3wmmmpgizkzwTKnRhN8SkEHDdMHew7wKvtDLz9KjApeRtBvi9flWGVkI1BilF6N2r6UTPN9Z9zHp1bjcxAhwI5tj95KBAMC8FxDdX+0oV6gZmCRV/auExkWw8TEgN0Vv+BcCrRkR+EEUcCd9MhOA3GQhApspqXiUembCnRqu3XYMNZJy0Fb6zZUwq9LRMBAI3Bdsski6mD/BsQhBtGipMabjyMSQzn/u1bN/Fsmwe4GBId8UTO9thuzzj+TPo1NsV28sHjib3bOGT9iy8aaBeNq5TpqrYQl59JcjD3jwuRiAK1zhw0In8EXpUvMPjsA4yStP8P78mGFFBxfo3UG2arNIIsnYUdPGXfq2hJehT828CNeVQ0Xm8ssFU02+pCHt1qlnI+zgFRgYbep3WaDC/aFlWOCOUavbG842QmdHI1fydy4pUxC9E711oMCbsO+QfTru3N/oao7vGWuUSMaOzTFeLAMLrQDO0KQQVixdkmInT47nTaMPCp653BzV971LjmEsdVR2R1kZQavpPAiNPgdfZOxiZJvtHXr9b/I3L1eIERUukTAXSS/G9GlHxKc+dSXTmFOgZR4CdWKDnXEnAnHbMVgoMkpA/ybS401MlnBOIrMrN5gnKxGgKWdcvq4IQnDMk=
 cache:
+  yarn: true
   directories:
+  - node_modules
+  - elm-stuff
   - sysconfcpus
 before_install:
-- npm i -g elm yarn
+- npm i -g elm
 install:
 - yarn install
 - elm-package install -y
@@ -30,7 +33,7 @@ before_script:
 - "packer validate -var build_path=$TRAVIS_BUILD_DIR $TRAVIS_BUILD_DIR/scripts/aws-ebs.json"
 script:
 - chmod +x ./scripts/packer-run.sh
-- "$TRAVIS_BUILD_DIR/scripts/packer-run.sh"
+- "$TRAVIS_BUILD_DIR/scripts/packer-run.sh" 
 after_success:
 - ls -al
 after_failure:
