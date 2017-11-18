@@ -1,16 +1,18 @@
 {
   "variables": {
-    "aws_access_key": "",
-    "aws_secret_key": "",
+    "access_key": "",
+    "secret_key": "",
+    "region": "",
+    "src_ami": "",
     "build_path": ""
   },
   "builders": [
     {
       "type": "amazon-ebs",
-      "access_key": "{{user `aws_access_key`}}",
-      "secret_key": "{{user `aws_secret_key`}}",
-      "region": "eu-west-2",
-      "source_ami": "ami-e3051987",
+      "access_key": "{{user `access_key`}}",
+      "secret_key": "{{user `secret_key`}}",
+      "region": "{{user `region`}}",
+      "source_ami": "{{user `src_ami`}}",
       "instance_type": "t2.micro",
       "ssh_username": "ec2-user",
       "ami_name": "rooms-checker-elm {{timestamp}}"
@@ -25,6 +27,13 @@
     {
       "type": "shell",
       "script": "{{user `build_path`}}/scripts/provision.sh"
+    }
+  ],
+  "post-processors": [
+    {
+      "type": "manifest",
+      "output": "manifest.json",
+      "strip_path": true
     }
   ]
 }
