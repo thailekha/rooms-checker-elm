@@ -1,4 +1,4 @@
-const server = require('../../api.js'),
+const server = require('../../app.js'),
 	assert = require('assert'),
     http = require('http');
 

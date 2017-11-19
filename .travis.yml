@@ -58,19 +58,19 @@ script:
 - packer build -var access_key=$AWS_ACCESS_KEY -var secret_key=$AWS_SECRET_KEY
   -var region=$AWS_REGION -var src_ami=$AWS_SRC_AMI -var build_path=$TRAVIS_BUILD_DIR
   $TRAVIS_BUILD_DIR/scripts/aws-ebs.json
-- cat $TRAVIS_BUILD_DIR/manifest.json
-- REGION_AMI_ID=$(cat $TRAVIS_BUILD_DIR/manifest.json | jq --raw-output '.builds[0].artifact_id')
-- REGION_AMI_ID_PARTS=(${REGION_AMI_ID//\:/ })
-- AMI_ID=(${REGION_AMI_ID_PARTS[1]})
-- echo AMI "$AMI_ID"
-- cd $TRAVIS_BUILD_DIR/scripts
-- |
-  terraform init -var access_key=$AWS_ACCESS_KEY -var secret_key=$AWS_SECRET_KEY -var region=$AWS_REGION -var ami_id=$AMI_ID -force-copy -input=false && \
-  terraform show && \
-  terraform validate -var access_key=$AWS_ACCESS_KEY -var secret_key=$AWS_SECRET_KEY -var region=$AWS_REGION -var ami_id=$AMI_ID && \
-  terraform apply -input=false -auto-approve -var access_key=$AWS_ACCESS_KEY -var secret_key=$AWS_SECRET_KEY -var region=$AWS_REGION -var ami_id=$AMI_ID && \
-  terraform show
-- cd $TRAVIS_BUILD_DIR
+# - cat $TRAVIS_BUILD_DIR/manifest.json
+# - REGION_AMI_ID=$(cat $TRAVIS_BUILD_DIR/manifest.json | jq --raw-output '.builds[0].artifact_id')
+# - REGION_AMI_ID_PARTS=(${REGION_AMI_ID//\:/ })
+# - AMI_ID=(${REGION_AMI_ID_PARTS[1]})
+# - echo AMI "$AMI_ID"
+# - cd $TRAVIS_BUILD_DIR/scripts
+# - |
+#   terraform init -var access_key=$AWS_ACCESS_KEY -var secret_key=$AWS_SECRET_KEY -var region=$AWS_REGION -var ami_id=$AMI_ID -force-copy -input=false && \
+#   terraform show && \
+#   terraform validate -var access_key=$AWS_ACCESS_KEY -var secret_key=$AWS_SECRET_KEY -var region=$AWS_REGION -var ami_id=$AMI_ID && \
+#   terraform apply -input=false -auto-approve -var access_key=$AWS_ACCESS_KEY -var secret_key=$AWS_SECRET_KEY -var region=$AWS_REGION -var ami_id=$AMI_ID && \
+#   terraform show
+# - cd $TRAVIS_BUILD_DIR
 after_success:
 - ls -al $TRAVIS_BUILD_DIR
 after_failure:

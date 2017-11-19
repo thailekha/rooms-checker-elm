@@ -26,7 +26,8 @@
     },
     {
       "type": "shell",
-      "script": "{{user `build_path`}}/scripts/provision.sh"
+      "script": "{{user `build_path`}}/scripts/provision.sh",
+      "execute_command": "echo 'packer' | sudo -S sh -c '{{ .Vars }} {{ .Path }}'"
     }
   ],
   "post-processors": [
