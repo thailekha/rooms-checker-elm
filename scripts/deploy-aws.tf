@@ -88,6 +88,10 @@ resource "aws_instance" "frontend" {
   instance_type = "t2.micro"
 
   vpc_security_group_ids = ["${aws_security_group.frontend.id}"]
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_elb" "web" {
