@@ -104,11 +104,11 @@ resource "aws_instance" "frontend" {
   }
 
   # make terrform wait until instance is fully initialized
-  provisioner "remote-exec" {
-    inline = [
-      "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo -e "Waiting for cloud-init..."; sleep 1; done"
-    ]
-  }
+  # provisioner "remote-exec" {
+  #   inline = [
+  #     "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo -e "Waiting for cloud-init..."; sleep 1; done"
+  #   ]
+  # }
 }
 
 # Load balancer pointing to the "frontend" ec2 instance

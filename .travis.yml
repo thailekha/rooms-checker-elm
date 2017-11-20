@@ -6,7 +6,6 @@ env:
   - secure: mYMuuCc1jnJmd0mAgvhy2tDkxjhs2Etg8RwqrcIDPf8lnkNYoHZMaQUJOALFieABzAd050r30HJzKGBrIQQhnJaxdgpjJ5GQyGiqXsDogYlZN7S7C3ZStdjfb5613pLjg8B7zcjLmzLZabdzrOlhZIzE3iPN3qiu/c9FD1Tej6TBvJwQiN9gjtyLG/V6/Bp/1r3WRhI2z0mtDcbXKUsQ+lr1AQnOass7R0USSyLP0RNfmxb/BKCICo4FpJ01Pf2AE1dw/sBBv2FnD7RpEaT09bW+aNKbZOTc5dFM0KbVRKWC/DHWEiGGpRHyPaH9xIAjDj/orD9YJtSvEpwHru9CMO/slF4V4ig3WhX09mNdYk/ec80JjR9AcCpGnLHT5jcRZ/pgIn1gfJNLThCqYrmZLWuj3JejeSvYrh/oUWHGW6sllGMBaeZWZoJE92yx5o+bahXhQHBFleO1pgHJqu6z6ugoiIS6ADTuIZsb6Dh3FZIJ13tb+IxtX1IYALmitLpt8eYKXJkQAdgYZUUmW7tFXSsHy6P/YJ3Lg6x6D2Q5sbwXJnN6Vk8fmRYoAZGMQR9+YHyVXjUZeWgoaWk4UMnwnHp5/HXIVQlHR5jMfchkz0Go0JnS6su/c/FQMnaLrslp0OLW+cNZDsbDqs0iifl0yIidOsjgscmbmK2feTnMILg=
   - AWS_REGION="us-east-1"
   - AWS_SRC_AMI="ami-6057e21a"
-  - PACKER_LOG=1
 cache:
   directories:
   - node_modules
