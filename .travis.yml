@@ -12,6 +12,7 @@ cache:
   - node_modules
   - elm-stuff
   - sysconfcpus
+  - scripts/.terraform/plugins/linux_amd64
   - "${HOME}/bin"
 before_install:
 - echo Installing prerequisites
