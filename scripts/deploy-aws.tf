@@ -2,6 +2,9 @@ variable "access_key" {}
 variable "secret_key" {}
 variable "region" {}
 variable "ami_id" {}
+variable "keypair_name" {}
+variable "key_file" {}
+variable "build_path" {}
 
 provider "aws" {
   access_key = "${var.access_key}"
@@ -80,6 +83,14 @@ resource "aws_security_group" "frontend" {
     security_groups = ["${aws_security_group.elb.id}"]
   }
 
+  # Inbound rule accepting any SSH traffic
+  ingress {
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
+    cidr_blocks     = ["0.0.0.0/0"]
+  }
+
   # outbound rule to anywhere
   egress {
     from_port   = 0
@@ -91,8 +102,10 @@ resource "aws_security_group" "frontend" {
 
 # The EC2 instance that will run the app, named "frontend"
 resource "aws_instance" "frontend" {
+  count                   = 1
   ami                     = "${var.ami_id}"
   instance_type           = "t2.micro"
+  key_name                = "${var.keypair_name}"
   vpc_security_group_ids  = ["${aws_security_group.frontend.id}"]
 
   lifecycle {
@@ -104,11 +117,29 @@ resource "aws_instance" "frontend" {
   }
 
   # make terrform wait until instance is fully initialized
-  # provisioner "remote-exec" {
-  #   inline = [
-  #     "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo -e "Waiting for cloud-init..."; sleep 1; done"
-  #   ]
-  # }
+  provisioner "file" {
+    source      = "${var.build_path}/scripts/waitFullInit.sh"
+    destination = "/tmp/waitFullInit.sh"
+
+    connection {
+      type     = "ssh"
+      user     = "ec2-user"
+      private_key = "${file("${var.key_file}")}"
+    }
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /tmp/waitFullInit.sh",
+      "/tmp/waitFullInit.sh",
+    ]
+
+    connection {
+      type     = "ssh"
+      user     = "ec2-user"
+      private_key = "${file("${var.key_file}")}"
+    }
+  }
 }
 
 # Load balancer pointing to the "frontend" ec2 instance

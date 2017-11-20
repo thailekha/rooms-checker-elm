@@ -4,7 +4,10 @@
     "secret_key": "",
     "region": "",
     "src_ami": "",
-    "build_path": ""
+    "keypair_name":"",
+    "key_file":"",
+    "build_path": "",
+    "build_suffix": ""
   },
   "builders": [
     {
@@ -15,7 +18,9 @@
       "source_ami": "{{user `src_ami`}}",
       "instance_type": "t2.micro",
       "ssh_username": "ec2-user",
-      "ami_name": "rooms-checker-elm {{timestamp}}"
+      "ssh_keypair_name": "{{user `keypair_name`}}",
+      "ssh_private_key_file": "{{user `key_file`}}",
+      "ami_name": "rooms-checker-elm {{timestamp}} {{user `build_suffix`}}"
     }
   ],
   "provisioners": [
