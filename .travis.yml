@@ -4,9 +4,9 @@ env:
   global:  
   - secure: SODkHETqto613st5ZYGWSY7sT4vMTC9CZaxBn9hOu8ANwHko1RDhQmPJdUjmj9A7UC72O8hHSddHABIa2fvmPVwjZamA5ZYzD/5LV43wn6sjtbLhAIh0XZcrbr2VxBtfGKQ/0IUf3NUHncpweDyeXsWliDOdPPyB6VLaxDlbjCLpMZYK1O+6SD/fyYd1DS92yHyHqleEsrg93VukAxsAiDantdLgmJVXHpO058kAvJnYykD6XHQQCoY1WMqJvXYnFbPukpaWgYUfxi77EY+YUHO+s2g6dUD+ibnOdr/Vc0LQvhlmIvjoQ9CBpP5etkVkgok+6Lwqv/ywG3LiD7IUsbeIsiv2haWGlteBFHKsR9VDkfTei747314jplq/790vr4tLnQ+hKUxxRTQSA9XIQtjZzVaeaj2yo0RBzAgW/moW2SG/rbuL8K3GT42Hh4AJvz2gv46bwV3CSIbNrB0ks9J2Lm9FZOfLRCHAP6zyP6nGzVEoRUR/BYm6nTHoPrtNW7V1UOIijEO441gy12+Q9epdH7wpB9NT/EeHHoOw+Ox/0RmoWqkBLM0EkgnVrLKzzyWw4Xy4tYpV6VD/AuseEs+THJqxUxInIjMRU8ZATQHBJ6TstuUIexLIEqf4nq1pmrcA068V635k1kkuwwvOiN8POqm1uWkhufvryJx9XW4=
   - secure: mYMuuCc1jnJmd0mAgvhy2tDkxjhs2Etg8RwqrcIDPf8lnkNYoHZMaQUJOALFieABzAd050r30HJzKGBrIQQhnJaxdgpjJ5GQyGiqXsDogYlZN7S7C3ZStdjfb5613pLjg8B7zcjLmzLZabdzrOlhZIzE3iPN3qiu/c9FD1Tej6TBvJwQiN9gjtyLG/V6/Bp/1r3WRhI2z0mtDcbXKUsQ+lr1AQnOass7R0USSyLP0RNfmxb/BKCICo4FpJ01Pf2AE1dw/sBBv2FnD7RpEaT09bW+aNKbZOTc5dFM0KbVRKWC/DHWEiGGpRHyPaH9xIAjDj/orD9YJtSvEpwHru9CMO/slF4V4ig3WhX09mNdYk/ec80JjR9AcCpGnLHT5jcRZ/pgIn1gfJNLThCqYrmZLWuj3JejeSvYrh/oUWHGW6sllGMBaeZWZoJE92yx5o+bahXhQHBFleO1pgHJqu6z6ugoiIS6ADTuIZsb6Dh3FZIJ13tb+IxtX1IYALmitLpt8eYKXJkQAdgYZUUmW7tFXSsHy6P/YJ3Lg6x6D2Q5sbwXJnN6Vk8fmRYoAZGMQR9+YHyVXjUZeWgoaWk4UMnwnHp5/HXIVQlHR5jMfchkz0Go0JnS6su/c/FQMnaLrslp0OLW+cNZDsbDqs0iifl0yIidOsjgscmbmK2feTnMILg=
-  - AWS_REGION="us-east-1"
-  - AWS_SRC_AMI="ami-6057e21a"
-  - KEY_PAIR_NAME="gmail-useast1-virginia"
+  - AWS_REGION=us-east-1
+  - AWS_SRC_AMI=ami-6057e21a
+  - KEY_PAIR_NAME=gmail-useast1-virginia
   - TDIR=$TRAVIS_BUILD_DIR
 cache:
   directories:
@@ -15,101 +15,135 @@ cache:
   - sysconfcpus
   - scripts/.terraform/plugins/linux_amd64
   - "${HOME}/bin"
-before_install:
-- openssl aes-256-cbc -K $encrypted_c4941b3649b3_key -iv $encrypted_c4941b3649b3_iv
-  -in ./scripts/gmail-useast1-virginia.pem.enc -out ./scripts/gmail-useast1-virginia.pem -d
-- echo Installing prerequisites
-- |
-  if ! jq --version; 
-    then curl -sSL -o "${HOME}/bin/jq" https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64;
-    chmod +x "${HOME}/bin/jq";
-  fi
-- |
-  if ! terraform version; 
-  then 
-    curl -sSL -o terraform.zip https://releases.hashicorp.com/terraform/0.11.0/terraform_0.11.0_linux_amd64.zip;
-    unzip terraform.zip; mv -v terraform "${HOME}/bin/terraform";
-    chmod +x "${HOME}/bin/terraform";
-    terraform version; 
-    rm terraform.zip; 
-  fi
-- |
-  if [ ! -d sysconfcpus/bin ];
-  then
-    git clone https://github.com/obmarg/libsysconfcpus.git;
-    cd libsysconfcpus;
-    ./configure --prefix=$TDIR/sysconfcpus;
-    make && make install;
-    cd ..;
-  fi
-- npm i -g elm
-install:
-- echo Installing local dependencies
-- yarn install
-- elm-package install -y
-before_script:
-- echo Build, test project, and prepare for deploy
-- "$TDIR/sysconfcpus/bin/sysconfcpus -n 2 $TDIR/node_modules/webpack/bin/webpack.js
-  --progress"
-- npm run test
-- tar czf dist.tgz dist
-- yarn pack
-- packer -v
-- |
-  packer validate \
-    -var src_ami=$AWS_SRC_AMI \
-    -var keypair_name=$KEY_PAIR_NAME \
-    -var key_file=$TDIR/scripts/gmail-useast1-virginia.pem \
-    -var build_path=$TDIR $TDIR/scripts/aws-ebs.json
-- terraform version
-script:
-- echo Build AMI and deploy
-- BUILD_SUFFIX=v$(cat $TDIR/package.json | jq --raw-output '.version')-$TRAVIS_BUILD_NUMBER
-- |
-  packer build \
-    -var access_key=$AWS_ACCESS_KEY \
-    -var secret_key=$AWS_SECRET_KEY \
-    -var region=$AWS_REGION \
-    -var src_ami=$AWS_SRC_AMI \
-    -var keypair_name=$KEY_PAIR_NAME \
-    -var key_file=$TDIR/scripts/gmail-useast1-virginia.pem \
-    -var build_path=$TDIR \
-    -var build_suffix=$BUILD_SUFFIX $TDIR/scripts/aws-ebs.json
-- cat $TDIR/manifest.json
-- REGION_AMI_ID=$(cat $TDIR/manifest.json | jq --raw-output '.builds[0].artifact_id')
-- REGION_AMI_ID_PARTS=(${REGION_AMI_ID//\:/ })
-- AMI_ID=(${REGION_AMI_ID_PARTS[1]})
-- echo AMI "$AMI_ID"
-- cd $TDIR/scripts
-- |
-  terraform init \
-  -var access_key=$AWS_ACCESS_KEY \
-  -var secret_key=$AWS_SECRET_KEY \
-  -var region=$AWS_REGION \
-  -var ami_id=$AMI_ID \
-  -var keypair_name=$KEY_PAIR_NAME \
-  -var key_file=$TDIR/scripts/gmail-useast1-virginia.pem \
-  -var build_path=$TDIR -force-copy -input=false \
-  && \
-  terraform validate \
-  -var access_key=$AWS_ACCESS_KEY \
-  -var secret_key=$AWS_SECRET_KEY \
-  -var region=$AWS_REGION \
-  -var ami_id=$AMI_ID \
-  -var keypair_name=$KEY_PAIR_NAME \
-  -var key_file=$TDIR/scripts/gmail-useast1-virginia.pem \
-  -var build_path=$TDIR \
-  && \
-  terraform apply \
-  -var access_key=$AWS_ACCESS_KEY \
-  -var secret_key=$AWS_SECRET_KEY \
-  -var region=$AWS_REGION \
-  -var ami_id=$AMI_ID \
-  -var keypair_name=$KEY_PAIR_NAME \
-  -var key_file=$TDIR/scripts/gmail-useast1-virginia.pem \
-  -var build_path=$TDIR -input=false -auto-approve
-- cd $TDIR
-after_success:
-- ls -al $TDIR
-after_failure:
-- ls -al $TDIR
+stages:
+  - name: Integration
+    if: type IN (push) AND branch = master AND tag IS blank
+  - name: Delivery
+    if: type IN (push) AND branch = master AND tag IS blank
+  - name: Deployment
+    if: tag IS present AND tag =~ ^ami-.
+jobs:
+  include:
+    - stage: Integration
+      before_install:
+      - |
+        if [ ! -d sysconfcpus/bin ];
+        then
+          git clone https://github.com/obmarg/libsysconfcpus.git;
+          cd libsysconfcpus;
+          ./configure --prefix=$TDIR/sysconfcpus;
+          make && make install;
+          cd ..;
+        fi
+      - npm i -g elm
+      install:
+      - echo Installing local dependencies
+      - yarn install
+      - elm-package install -y
+      before_script:
+      - "$TDIR/sysconfcpus/bin/sysconfcpus -n 2 $TDIR/node_modules/webpack/bin/webpack.js
+        --progress"
+      script:
+        - npm run test
+    - stage: Delivery
+      before_install:
+      - openssl aes-256-cbc -K $encrypted_c4941b3649b3_key -iv $encrypted_c4941b3649b3_iv -in ./scripts/secrets.tar.enc -out secrets.tar -d
+      - tar xvf secrets.tar
+      - rm secrets.tar
+      - |
+        if [ ! -d sysconfcpus/bin ];
+        then
+          git clone https://github.com/obmarg/libsysconfcpus.git;
+          cd libsysconfcpus;
+          ./configure --prefix=$TDIR/sysconfcpus;
+          make && make install;
+          cd ..;
+        fi
+      - npm i -g elm
+      install:
+      - echo Installing local dependencies
+      - yarn install
+      - elm-package install -y
+      before_script:
+      - "$TDIR/sysconfcpus/bin/sysconfcpus -n 2 $TDIR/node_modules/webpack/bin/webpack.js --progress"
+      - tar czf dist.tgz dist
+      - yarn pack
+      - packer -v
+      - |
+        packer validate \
+          -var src_ami=$AWS_SRC_AMI \
+          -var keypair_name=$KEY_PAIR_NAME \
+          -var key_file=$TDIR/secrets/gmail-useast1-virginia.pem \
+          -var build_path=$TDIR $TDIR/scripts/aws-ebs.json
+      script:
+      - BUILD_SUFFIX=v$(cat $TDIR/package.json | jq --raw-output '.version')-$TRAVIS_BUILD_NUMBER
+      - |
+        packer build \
+          -var access_key=$AWS_ACCESS_KEY \
+          -var secret_key=$AWS_SECRET_KEY \
+          -var region=$AWS_REGION \
+          -var src_ami=$AWS_SRC_AMI \
+          -var keypair_name=$KEY_PAIR_NAME \
+          -var key_file=$TDIR/secrets/gmail-useast1-virginia.pem \
+          -var build_path=$TDIR \
+          -var build_suffix=$BUILD_SUFFIX $TDIR/scripts/aws-ebs.json
+      - cat $TDIR/manifest.json
+      - REGION_AMI_ID=$(cat $TDIR/manifest.json | jq --raw-output '.builds[0].artifact_id')
+      - REGION_AMI_ID_PARTS=(${REGION_AMI_ID//\:/ })
+      - AMI_ID=(${REGION_AMI_ID_PARTS[1]})
+      after_success:
+      - echo AMI $AMI_ID
+      - if [ ! $AMI_ID ]; then exit 1; fi
+      - eval "$(ssh-agent -s)"
+      - chmod 600 $TDIR/secrets/id_rsa
+      - ssh-add $TDIR/secrets/id_rsa
+      - git tag $AMI_ID
+      - git push --tags --repo=git@github.com:thailekha/rooms-checker-elm.git # trigger Deployment
+    - stage: Deployment
+      before_install:
+      - openssl aes-256-cbc -K $encrypted_c4941b3649b3_key -iv $encrypted_c4941b3649b3_iv -in ./scripts/secrets.tar.enc -out secrets.tar -d
+      - tar xvf secrets.tar
+      - rm secrets.tar
+      - |
+        if ! terraform version;
+        then 
+          curl -sSL -o terraform.zip https://releases.hashicorp.com/terraform/0.11.0/terraform_0.11.0_linux_amd64.zip;
+          unzip terraform.zip; mv -v terraform "${HOME}/bin/terraform";
+          chmod +x "${HOME}/bin/terraform";
+          terraform version; 
+          rm terraform.zip; 
+        fi
+      install:
+      - echo Not installing anything since deploying
+      before_script:
+      - terraform version
+      script: 
+      - cd $TDIR/scripts
+      - |
+        terraform init \
+        -var access_key=$AWS_ACCESS_KEY \
+        -var secret_key=$AWS_SECRET_KEY \
+        -var region=$AWS_REGION \
+        -var ami_id=$TRAVIS_TAG \
+        -var keypair_name=$KEY_PAIR_NAME \
+        -var key_file=$TDIR/secrets/gmail-useast1-virginia.pem \
+        -var build_path=$TDIR -force-copy -input=false \
+        && \
+        terraform validate \
+        -var access_key=$AWS_ACCESS_KEY \
+        -var secret_key=$AWS_SECRET_KEY \
+        -var region=$AWS_REGION \
+        -var ami_id=$TRAVIS_TAG \
+        -var keypair_name=$KEY_PAIR_NAME \
+        -var key_file=$TDIR/secrets/gmail-useast1-virginia.pem \
+        -var build_path=$TDIR \
+        && \
+        terraform apply \
+        -var access_key=$AWS_ACCESS_KEY \
+        -var secret_key=$AWS_SECRET_KEY \
+        -var region=$AWS_REGION \
+        -var ami_id=$TRAVIS_TAG \
+        -var keypair_name=$KEY_PAIR_NAME \
+        -var key_file=$TDIR/secrets/gmail-useast1-virginia.pem \
+        -var build_path=$TDIR -input=false -auto-approve
+      - cd $TDIR

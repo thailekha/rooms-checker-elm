@@ -4,3 +4,7 @@ tmp/
 dist/
 *tfstate
 *pem
+scripts/.terraform/
+sysconfcpus/
+secrets/
+secrets.tar
