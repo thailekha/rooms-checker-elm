@@ -1,5 +1,3 @@
-language: node_js
-node_js: 6.11.2
 env:
   global:  
   - secure: SODkHETqto613st5ZYGWSY7sT4vMTC9CZaxBn9hOu8ANwHko1RDhQmPJdUjmj9A7UC72O8hHSddHABIa2fvmPVwjZamA5ZYzD/5LV43wn6sjtbLhAIh0XZcrbr2VxBtfGKQ/0IUf3NUHncpweDyeXsWliDOdPPyB6VLaxDlbjCLpMZYK1O+6SD/fyYd1DS92yHyHqleEsrg93VukAxsAiDantdLgmJVXHpO058kAvJnYykD6XHQQCoY1WMqJvXYnFbPukpaWgYUfxi77EY+YUHO+s2g6dUD+ibnOdr/Vc0LQvhlmIvjoQ9CBpP5etkVkgok+6Lwqv/ywG3LiD7IUsbeIsiv2haWGlteBFHKsR9VDkfTei747314jplq/790vr4tLnQ+hKUxxRTQSA9XIQtjZzVaeaj2yo0RBzAgW/moW2SG/rbuL8K3GT42Hh4AJvz2gv46bwV3CSIbNrB0ks9J2Lm9FZOfLRCHAP6zyP6nGzVEoRUR/BYm6nTHoPrtNW7V1UOIijEO441gy12+Q9epdH7wpB9NT/EeHHoOw+Ox/0RmoWqkBLM0EkgnVrLKzzyWw4Xy4tYpV6VD/AuseEs+THJqxUxInIjMRU8ZATQHBJ6TstuUIexLIEqf4nq1pmrcA068V635k1kkuwwvOiN8POqm1uWkhufvryJx9XW4=
@@ -8,13 +6,6 @@ env:
   - AWS_SRC_AMI=ami-6057e21a
   - KEY_PAIR_NAME=gmail-useast1-virginia
   - TDIR=$TRAVIS_BUILD_DIR
-cache:
-  directories:
-  - node_modules
-  - elm-stuff
-  - sysconfcpus
-  - scripts/.terraform/plugins/linux_amd64
-  - "${HOME}/bin"
 stages:
   - name: Integration
     if: type IN (push) AND branch = master AND tag IS blank
@@ -25,31 +16,14 @@ stages:
 jobs:
   include:
     - stage: Integration
+      language: node_js
+      node_js: 6.11.2
+      cache:
+        directories:
+        - node_modules
+        - elm-stuff
+        - sysconfcpus
       before_install:
-      - |
-        if [ ! -d sysconfcpus/bin ];
-        then
-          git clone https://github.com/obmarg/libsysconfcpus.git;
-          cd libsysconfcpus;
-          ./configure --prefix=$TDIR/sysconfcpus;
-          make && make install;
-          cd ..;
-        fi
-      - npm i -g elm
-      install:
-      - echo Installing local dependencies
-      - yarn install
-      - elm-package install -y
-      before_script:
-      - "$TDIR/sysconfcpus/bin/sysconfcpus -n 2 $TDIR/node_modules/webpack/bin/webpack.js
-        --progress"
-      script:
-        - npm run test
-    - stage: Delivery
-      before_install:
-      - openssl aes-256-cbc -K $encrypted_c4941b3649b3_key -iv $encrypted_c4941b3649b3_iv -in ./scripts/secrets.tar.enc -out secrets.tar -d
-      - tar xvf secrets.tar
-      - rm secrets.tar
       - |
         if [ ! -d sysconfcpus/bin ];
         then
@@ -66,8 +40,33 @@ jobs:
       - elm-package install -y
       before_script:
       - "$TDIR/sysconfcpus/bin/sysconfcpus -n 2 $TDIR/node_modules/webpack/bin/webpack.js --progress"
-      - tar czf dist.tgz dist
-      - yarn pack
+      script:
+        - npm run test
+        - yarn pack
+        - tar xvf rooms-checker-elm-v0.0.1.tgz
+        - rm rooms-checker-elm-v0.0.1.tgz
+        - tar czf ./package/dist.tgz dist
+        - tar czf rooms-checker-elm-v0.0.1.tgz package
+        - rm -rf package
+      before_deploy:
+        - git tag "$(date +'%Y%m%d%H%M%S')-integrated"
+      deploy:
+        provider: releases
+        api_key:
+          secure: N0ZDOCMFq2SOTCXiUCfH6rJ4tPsdMobTH+rHS7ynvO5SGpPrx9+DQn7yIg3X4exuH/mP8w1rLwlJhhpwO8rbJ80gsUCxqaY+98xqQRT0U0s3FV6NzumJQvTmaSXTnYTlB1cQ308d3N2jIUEemrh3s+CNiSAWONSgGbonn9bL29X7K60HYfxzk3JW2ucFHMBFGFm8RrXrwOBBjwcBZvgjglOsYkNz/vxhXMa27DWpeXWN8RQ9kPMyj2e6apNxf6RWJnNajr205NSp6yPRYC1WfU6w1CeCvOS+s/edrmmBVHKznC9kekw5Cv2GKUi5/MJONM5BaH8mKgfSOxcO+XI0NzKVEscClS7FAGFI+HdHec4i8x22P18mFBXQezSPIz9mBkPBaSyEo629eexigkbsJvFVSWbx/Nkf9wTTQfXHXQ+TeS8UuYS+C4g4V5k5FhrtKdwmMnSTUt5keyfVKFK0xDB/TVfG3kQDiCYx0/FNqpv3FMsJbN8UgF7sEx/8wt/2ET35GGn/l4eVwESegRGNLQxmeFQglZrpBF3bSAjZcvyYTwQS1RbNdJVxe4yaVBUqJ1D24p0SJjgQGESLCYFl02l69Zp8hVBH1rhwGq5l8r7pu+VqTU40hu2VyEM+dNQ47z2o82xQ2fYNDllQgVRatx9bIB5INw2/EzZzqK81N6w=
+        file: $TDIR/rooms-checker-elm-v0.0.1.tgz
+        skip_cleanup: true
+        on:
+          branch: master
+    - stage: Delivery
+      before_install:
+      - openssl aes-256-cbc -K $encrypted_c4941b3649b3_key -iv $encrypted_c4941b3649b3_iv -in ./scripts/secrets.tar.enc -out secrets.tar -d
+      - tar xvf secrets.tar
+      - rm secrets.tar
+      install:
+      - echo Not installing anything since delivery
+      before_script:
+      - curl -s https://api.github.com/repos/thailekha/rooms-checker-elm/releases/latest | jq --raw-output '.assets[0].browser_download_url' | wget -qi -
       - packer -v
       - |
         packer validate \
@@ -100,6 +99,10 @@ jobs:
       - git tag $AMI_ID
       - git push --tags --repo=git@github.com:thailekha/rooms-checker-elm.git # trigger Deployment
     - stage: Deployment
+      cache:
+        directories:
+        - scripts/.terraform/plugins/linux_amd64
+        - "${HOME}/bin"
       before_install:
       - openssl aes-256-cbc -K $encrypted_c4941b3649b3_key -iv $encrypted_c4941b3649b3_iv -in ./scripts/secrets.tar.enc -out secrets.tar -d
       - tar xvf secrets.tar
