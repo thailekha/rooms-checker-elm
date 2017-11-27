@@ -18,6 +18,8 @@ n 6.11.2
 mkdir $APP_PATH
 mv /tmp/rooms-checker-elm.tgz $APP_PATH/.
 cd $APP_PATH && tar -xvzf rooms-checker-elm.tgz
+
+# Install the app
 cd $APP_PATH/package && npm i --production && tar -xvzf dist.tgz
 
 # Configure the OS to run the app at startup

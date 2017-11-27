@@ -70,7 +70,6 @@ jobs:
       - rm secrets.tar
       before_script:    
       - curl -s https://api.github.com/repos/thailekha/rooms-checker-elm/releases/latest | jq --raw-output '.assets[0].browser_download_url' | wget -qi -
-      - packer -v
       - |
         packer validate \
           -var src_ami=$AWS_SRC_AMI \

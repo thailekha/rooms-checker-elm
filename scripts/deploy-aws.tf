@@ -25,7 +25,8 @@ terraform {
 # location of the remote state
 data "terraform_remote_state" "state" {
   backend = "s3"
-  # cannot use variables in terraform{backend{}} block so extend s3 here. notice to include everything
+  # cannot use variables in terraform{backend{}} block so extend s3 here.
+  # notice to include everything
   config {
     access_key = "${var.access_key}"
     secret_key = "${var.secret_key}"
@@ -35,9 +36,6 @@ data "terraform_remote_state" "state" {
     encrypt    = true
   }
 }
-
-# availability_zones, used to configure the load balancer later
-data "aws_availability_zones" "available" {}
 
 # a reference to the default vpc
 resource "aws_default_vpc" "default" {
@@ -51,7 +49,6 @@ resource "aws_security_group" "elb" {
   name        = "rooms_checker_elb_sg"
   description = "Used for ELB"
   vpc_id      = "${aws_default_vpc.default.id}"
-
   # Inbound rule - HTTP access from anywhere
   ingress {
     from_port   = 80
@@ -59,7 +56,6 @@ resource "aws_security_group" "elb" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
   # outbound rule
   egress {
     from_port   = 0
@@ -74,7 +70,6 @@ resource "aws_security_group" "frontend" {
   name        = "rooms_checker_frontend_sg"
   description = "Used for frontend instance"
   vpc_id      = "${aws_default_vpc.default.id}"
-
   # Inbound rule accepting any TCP traffic from the load balancer
   ingress {
     from_port       = 5000
@@ -82,7 +77,6 @@ resource "aws_security_group" "frontend" {
     protocol        = "tcp"
     security_groups = ["${aws_security_group.elb.id}"]
   }
-
   # Inbound rule accepting any SSH traffic
   ingress {
     from_port       = 22
@@ -90,7 +84,6 @@ resource "aws_security_group" "frontend" {
     protocol        = "tcp"
     cidr_blocks     = ["0.0.0.0/0"]
   }
-
   # outbound rule to anywhere
   egress {
     from_port   = 0
@@ -109,10 +102,9 @@ resource "aws_instance" "frontend" {
   vpc_security_group_ids  = ["${aws_security_group.frontend.id}"]
 
   lifecycle {
-  # if this isntance needs updating, 
-  # terraform creates a new identical instance, 
-  # apply the updates to the new instance, 
-  # and finally destroy this instance
+  # if this instance needs updating, 
+  # terraform creates a new instance
+  # beforing destroying this instance
     create_before_destroy = true
   }
 
