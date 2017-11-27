@@ -59,13 +59,16 @@ jobs:
         on:
           branch: master
     - stage: Delivery
-      before_install:
+      install:
+      - |
+        if ! jq --version; 
+          then curl -sSL -o "${HOME}/bin/jq" https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64;
+          chmod +x "${HOME}/bin/jq";
+        fi
       - openssl aes-256-cbc -K $encrypted_c4941b3649b3_key -iv $encrypted_c4941b3649b3_iv -in ./scripts/secrets.tar.enc -out secrets.tar -d
       - tar xvf secrets.tar
       - rm secrets.tar
-      install:
-      - echo Not installing anything since delivery
-      before_script:
+      before_script:    
       - curl -s https://api.github.com/repos/thailekha/rooms-checker-elm/releases/latest | jq --raw-output '.assets[0].browser_download_url' | wget -qi -
       - packer -v
       - |
@@ -103,10 +106,7 @@ jobs:
         directories:
         - scripts/.terraform/plugins/linux_amd64
         - "${HOME}/bin"
-      before_install:
-      - openssl aes-256-cbc -K $encrypted_c4941b3649b3_key -iv $encrypted_c4941b3649b3_iv -in ./scripts/secrets.tar.enc -out secrets.tar -d
-      - tar xvf secrets.tar
-      - rm secrets.tar
+      install:
       - |
         if ! terraform version;
         then 
@@ -116,11 +116,10 @@ jobs:
           terraform version; 
           rm terraform.zip; 
         fi
-      install:
-      - echo Not installing anything since deploying
-      before_script:
-      - terraform version
-      script: 
+      - openssl aes-256-cbc -K $encrypted_c4941b3649b3_key -iv $encrypted_c4941b3649b3_iv -in ./scripts/secrets.tar.enc -out secrets.tar -d
+      - tar xvf secrets.tar
+      - rm secrets.tar
+      script:
       - cd $TDIR/scripts
       - |
         terraform init \
