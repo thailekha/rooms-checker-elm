@@ -9,6 +9,8 @@ done
 
 echo "--- Curling port 5000 ---"
 
+# curl has to be called indirectly via the run function. 
+#Otherwise, if curl fails, the script exits immediately with an error exit code
 run()
 {
 	$1 && return $?
