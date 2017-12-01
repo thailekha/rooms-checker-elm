@@ -105,7 +105,7 @@ view model =
                 ]
             )
             -- not logged in
-            (p [] [ text "OLD VERSION !!!" ])
+            (p [] [ text "Please login to use this app" ])
         ]
 
 
