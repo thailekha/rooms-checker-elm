@@ -9,5 +9,5 @@
   - Deployed at: https://rooms-checker-go.herokuapp.com/
 - Frontend:
   - https://github.com/thailekha/rooms-checker-elm
-  - Deployed at: https://rooms-checker-elm.herokuapp.com/
+  - Deployed at: https://rooms-checker-elm.herokuapp.com/ (make sure you use `https://`, otherwise you won't be able to login)
 
