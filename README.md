@@ -2,7 +2,7 @@
 [![Build Status](https://travis-ci.org/thailekha/rooms-checker-elm.png?branch=master)](https://travis-ci.org/thailekha/rooms-checker-elm)
 
 - App checks for free rooms in WIT. This app facilitates the development of the 2 POCs:
-  - Continuous Integration, continuous delivery, and continuous deployment pipeline
+  - Continuous Integration, continuous delivery, and continuous deployment pipeline to AWS
   - Implementing Auth0 for authentication (OpenID) and OAuth (Authorization)
 - Backend:
   - https://github.com/thailekha/rooms-checker-go
